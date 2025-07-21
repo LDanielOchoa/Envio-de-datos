@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       const status = whatsappService.getStatus();
       
       console.log('✅ API: Estado final confirmado:', {
-        qrLength: status.qrCode.length,
+        qrLength: status.qrCode ? status.qrCode.length : 0,
         isConnected: status.isConnected,
         hasQR: !!status.qrCode
       });

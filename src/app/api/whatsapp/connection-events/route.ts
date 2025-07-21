@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { WhatsAppService } from '@/lib/whatsapp-service';
+import { addConnection, removeConnection } from '@/lib/connection-events';
 
-// Store para mantener conexiones SSE activas
-const connections = new Set<ReadableStreamDefaultController>();
+// Marcar la ruta como dinámica para evitar la compilación estática
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   console.log('🔌 Nueva conexión SSE para eventos de WhatsApp');
@@ -10,8 +11,8 @@ export async function GET(request: NextRequest) {
   // Crear stream para Server-Sent Events
   const stream = new ReadableStream({
     start(controller) {
-      connections.add(controller);
-      console.log(`📡 Conexión SSE agregada. Total: ${connections.size}`);
+      // Usar la función del módulo connection-events
+      addConnection(controller);
       
       // Enviar estado inicial
       const whatsappService = WhatsAppService.getInstance();
@@ -27,8 +28,8 @@ export async function GET(request: NextRequest) {
     },
     
     cancel(controller) {
-      connections.delete(controller);
-      console.log(`📡 Conexión SSE eliminada. Total: ${connections.size}`);
+      // Usar la función del módulo connection-events
+      removeConnection(controller);
     }
   });
 
@@ -39,30 +40,6 @@ export async function GET(request: NextRequest) {
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Cache-Control'
-    }
-  });
-}
-
-// Función para notificar a todas las conexiones SSE
-export function notifyConnectionChange(status: any) {
-  console.log('📢 Notificando cambio de conexión a', connections.size, 'clientes');
-  
-  const eventData = `data: ${JSON.stringify({
-    type: 'status_change',
-    data: status,
-    timestamp: new Date().toISOString()
-  })}\n\n`;
-  
-  const encoder = new TextEncoder();
-  const encodedData = encoder.encode(eventData);
-  
-  // Enviar a todas las conexiones activas
-  connections.forEach(controller => {
-    try {
-      controller.enqueue(encodedData);
-    } catch (error) {
-      console.log('❌ Error enviando SSE, eliminando conexión:', error);
-      connections.delete(controller);
     }
   });
 } 

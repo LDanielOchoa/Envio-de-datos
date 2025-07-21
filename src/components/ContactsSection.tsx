@@ -1,5 +1,6 @@
 import React from 'react';
-import { Contact } from '../types';
+import { Contact } from '@/types';
+import ContactsPreviewModal from '@/components/ContactsPreviewModal';
 
 interface ContactsSectionProps {
   contacts: Contact[];
@@ -14,6 +15,8 @@ export default function ContactsSection({
   onLoadContacts,
   onClearContacts
 }: ContactsSectionProps) {
+  const [showPreviewModal, setShowPreviewModal] = React.useState(false);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -234,12 +237,30 @@ export default function ContactsSection({
                   
                   {contacts.length > 10 && (
                     <div className="text-center py-4 border-t border-gray-200">
-                      <p className="text-gray-500 font-medium">
+                      <p className="text-gray-500 font-medium mb-3">
                         ... y {contacts.length - 10} contactos más
                       </p>
+                      <button
+                        onClick={() => setShowPreviewModal(true)}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        👁️ Ver Todos los Contactos
+                      </button>
                     </div>
                   )}
                 </div>
+                
+                {/* View All Button for smaller lists */}
+                {contacts.length > 0 && contacts.length <= 10 && (
+                  <div className="text-center pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => setShowPreviewModal(true)}
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                      👁️ Vista Detallada
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-12">
@@ -293,6 +314,13 @@ export default function ContactsSection({
           </table>
         </div>
       </div>
+
+      {/* Contacts Preview Modal */}
+      <ContactsPreviewModal
+        isOpen={showPreviewModal}
+        contacts={contacts}
+        onClose={() => setShowPreviewModal(false)}
+      />
     </div>
   );
 }

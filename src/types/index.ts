@@ -11,19 +11,49 @@ export type Contact = {
 
 export type WhatsAppStatus = {
   isConnected: boolean;
-  qrCode?: string;
-  phoneNumber?: string;
-  lastSeen?: Date;
+  qrCode: string;
+  phoneNumber: string;
+  lastSeen: Date | null;
 };
 
-export type MessageTemplate = {
-  id: string;
-  name: string;
-  content: string;
-  group?: string;
-};
 
 export enum SheetType {
   UNITARIO = 'unitario',
   GRUPOS = 'grupos'
 } 
+
+export interface SendResult {
+  contactId: string;
+  status: 'success' | 'error';
+  error?: string;
+}
+
+export interface SendResults {
+  successCount: number;
+  errorCount: number;
+  results: SendResult[];
+  useTemplates?: boolean;
+}
+
+export type TabType = 'whatsapp' | 'sheets' | 'messages' | 'settings' | 'logs';
+
+
+export interface SendResult {
+  contactId: string;
+  status: 'success' | 'error';
+  error?: string;
+}
+
+export interface SendResults {
+  successCount: number;
+  errorCount: number;
+  results: SendResult[];
+  useTemplates?: boolean;
+}
+
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  content: string;
+  group?: string;
+}

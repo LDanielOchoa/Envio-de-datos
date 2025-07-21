@@ -1,5 +1,6 @@
 import React from 'react';
-import { Contact, SendResults } from '../types';
+import { Contact, SendResults } from '@/types';
+import { messageTemplates, personalizeMessage } from '@/lib/message-templates';
 
 interface MessagesSectionProps {
   message: string;
@@ -32,14 +33,24 @@ export default function MessagesSection({
   onTestSend,
   onSendMessages
 }: MessagesSectionProps) {
-  const officialMessage = `Buenas Tardes, estimados Extensionistas de Fabricas de Productividad!
+  const [selectedTemplate, setSelectedTemplate] = React.useState('default');
+  const [showTemplatePreview, setShowTemplatePreview] = React.useState(false);
 
-Desde Colombia Productiva en Alianza con la Universidad Nacional de Colombia, los invitamos a participar en el curso virtual gratuito en Gestión de la Sostenibilidad en la empresa. El cual estará iniciado en el mes de Junio 2025.
+  const handleTemplateChange = (templateId: string) => {
+    const template = messageTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(templateId);
+      setMessage(template.content);
+    }
+  };
 
-Si estás interesado(a), puedes inscribirte en este link
-https://bit.ly/cursofabricas
-
-Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce@unal.edu.co`;
+  const getPreviewMessage = () => {
+    if (contacts.length > 0) {
+      const sampleContact = contacts[0];
+      return personalizeMessage(message, sampleContact);
+    }
+    return message;
+  };
 
   return (
     <div className="space-y-8">
@@ -54,39 +65,88 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
         </p>
       </div>
 
-      {/* Official Message Template */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6">
+      {/* Message Templates Selector */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-blue-900 flex items-center">
-            <span className="mr-3">📋</span>
-            Mensaje Oficial Colombia Productiva
+            <span className="mr-3">📝</span>
+            Plantillas de Mensajes
           </h3>
           <button
-            onClick={() => setMessage(officialMessage)}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            onClick={() => setShowTemplatePreview(!showTemplatePreview)}
+            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            📝 Usar Mensaje Oficial
+            {showTemplatePreview ? '🙈 Ocultar Vista Previa' : '👁️ Vista Previa'}
           </button>
         </div>
         
-        <div className="bg-white rounded-xl p-4 border border-blue-200">
-          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-            {officialMessage}
-          </p>
+        {/* Template Selector */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {messageTemplates.map((template) => (
+            <div
+              key={template.id}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                selectedTemplate === template.id
+                  ? 'border-blue-500 bg-blue-50 shadow-lg'
+                  : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50'
+              }`}
+              onClick={() => handleTemplateChange(template.id)}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-gray-900 text-sm">{template.name}</h4>
+                {template.group && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                    Grupo {template.group}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 line-clamp-3">
+                {template.content.substring(0, 100)}...
+              </p>
+              {selectedTemplate === template.id && (
+                <div className="mt-2 flex items-center text-blue-600 text-xs">
+                  <span className="mr-1">✅</span>
+                  <span>Seleccionado</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
         
+        {/* Template Preview */}
+        {showTemplatePreview && (
+          <div className="bg-white rounded-xl p-4 border border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-gray-900">
+                Vista Previa: {messageTemplates.find(t => t.id === selectedTemplate)?.name}
+              </h4>
+              {contacts.length > 0 && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                  📝 Personalizado para: {contacts[0].name}
+                </span>
+              )}
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                {getPreviewMessage()}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Template Info */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex items-center text-sm text-blue-700">
-            <span className="mr-2">✅</span>
-            <span>Mensaje oficial verificado</span>
+            <span className="mr-2">📝</span>
+            <span>{messageTemplates.length} plantillas disponibles</span>
           </div>
           <div className="flex items-center text-sm text-blue-700">
-            <span className="mr-2">🔗</span>
-            <span>Link de inscripción incluido</span>
+            <span className="mr-2">🎯</span>
+            <span>Personalización automática</span>
           </div>
           <div className="flex items-center text-sm text-blue-700">
-            <span className="mr-2">📧</span>
-            <span>Contactos de soporte incluidos</span>
+            <span className="mr-2">🏷️</span>
+            <span>Específico por grupo</span>
           </div>
         </div>
       </div>
@@ -110,7 +170,7 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Escribe aquí el mensaje que deseas enviar..."
+                placeholder="El mensaje aparecerá aquí al seleccionar una plantilla..."
                 rows={10}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200"
               />
@@ -229,7 +289,11 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
               <div className="space-y-1 text-sm text-green-800">
                 <div className="flex items-center">
                   <span className="mr-2">📝</span>
-                  <span>Mensaje: {message.length > 0 ? 'Listo' : 'Pendiente'}</span>
+                  <span>Plantilla: {messageTemplates.find(t => t.id === selectedTemplate)?.name}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-2">📄</span>
+                  <span>Contenido: {message.length > 0 ? 'Listo' : 'Pendiente'}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="mr-2">📱</span>

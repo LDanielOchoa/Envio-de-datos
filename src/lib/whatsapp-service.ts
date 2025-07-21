@@ -1,5 +1,6 @@
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import qrcode from 'qrcode';
+import { notifyConnectionChange } from '@/lib/connection-events';
 
 // Variable global para mantener referencia persistente del cliente
 // Usando globalThis para asegurar persistencia
@@ -7,8 +8,8 @@ declare global {
   var whatsappGlobalClient: Client | null;
   var whatsappGlobalState: {
     isConnected: boolean;
-    phoneNumber: string;
-    lastSeen: Date | null;
+    phoneNumber?: string;
+    lastSeen?: Date | null;
   } | null;
 }
 
@@ -47,8 +48,8 @@ export class WhatsAppService {
       if (globalThis.whatsappGlobalState) {
         console.log('✅ Restaurando estado global:', globalThis.whatsappGlobalState);
         this.isConnected = globalThis.whatsappGlobalState.isConnected;
-        this.phoneNumber = globalThis.whatsappGlobalState.phoneNumber;
-        this.lastSeen = globalThis.whatsappGlobalState.lastSeen;
+        this.phoneNumber = globalThis.whatsappGlobalState.phoneNumber || '';
+        this.lastSeen = globalThis.whatsappGlobalState.lastSeen || null;
         this.qrCode = '';
         this.persistentQR = '';
       }
@@ -513,204 +514,55 @@ export class WhatsAppService {
 
   getStatus(): WhatsAppStatus {
     console.log('📊 getStatus - Verificando estado actual...');
-    console.log('📊 Cliente info:', this.client?.info?.wid?.user || 'No disponible');
-    console.log('📊 Estado guardado - isConnected:', this.isConnected, 'phone:', this.phoneNumber);
     
-    // Si ya tenemos un estado conectado confirmado, mantenerlo
-    if (this.isConnected && this.phoneNumber) {
-      console.log('✅ Estado conectado confirmado desde memoria:', this.phoneNumber);
-      
-      const finalQR = ''; // No QR si está conectado
-      
-      console.log('📊 ESTADO FINAL (CONECTADO):', {
-        isConnected: this.isConnected,
-        qrLength: finalQR.length,
-        phoneNumber: this.phoneNumber
-      });
-      
-      return {
-        isConnected: this.isConnected,
-        qrCode: finalQR,
-        phoneNumber: this.phoneNumber,
-        lastSeen: this.lastSeen
-      };
-    }
-    
-    // Verificar si hay nueva conexión del cliente
-    const realConnected = !!(this.client?.info?.wid?.user);
-    const realPhone = this.client?.info?.wid?.user || '';
-    
-    // Si detectamos conexión nueva
-    if (realConnected && !this.isConnected) {
-      console.log('🎉 ¡NUEVA CONEXIÓN DETECTADA! Actualizando estado...');
-      this.isConnected = true;
-      this.phoneNumber = realPhone;
-      this.lastSeen = new Date();
-      this.qrCode = '';
-      this.persistentQR = '';
-      console.log('✅ Estado actualizado - Conectado como:', realPhone);
-      
-      return {
+    if (this.client && this.client.info) {
+      console.log('📊 Cliente info:', this.client.info.wid.user);
+      const status: WhatsAppStatus = {
         isConnected: true,
-        qrCode: '',
-        phoneNumber: realPhone,
-        lastSeen: this.lastSeen
+        phoneNumber: this.client.info.wid.user,
+        lastSeen: this.lastSeen || null,
+        qrCode: ''  // Cuando está conectado, qrCode es cadena vacía
       };
+      console.log('📊 Estado guardado - isConnected:', status.isConnected, 'phone:', status.phoneNumber);
+      console.log('✅ Estado conectado confirmado desde memoria:', status.phoneNumber);
+      console.log('📊 ESTADO FINAL (CONECTADO):', { isConnected: status.isConnected, qrLength: 0, phoneNumber: status.phoneNumber });
+      return status;
     }
     
-    // Si no está conectado, mantener QR disponible
-    const finalQR = this.qrCode || this.persistentQR;
-    
-    console.log('📊 ESTADO FINAL (NO CONECTADO):', {
+    console.log('📊 Cliente info: No disponible');
+    const status: WhatsAppStatus = {
       isConnected: this.isConnected,
-      qrLength: finalQR.length,
-      phoneNumber: this.phoneNumber
-    });
-    
-    return {
-      isConnected: this.isConnected,
-      qrCode: finalQR,
-      phoneNumber: this.phoneNumber,
-      lastSeen: this.lastSeen
+      phoneNumber: this.phoneNumber || '',
+      lastSeen: this.lastSeen || null,
+      qrCode: this.qrCode || this.persistentQR || ''
     };
+    console.log('📊 Estado guardado - isConnected:', status.isConnected, 'phone:', status.phoneNumber);
+    console.log('📊 ESTADO FINAL (NO CONECTADO):', { isConnected: status.isConnected, qrLength: status.qrCode.length || 0, phoneNumber: status.phoneNumber });
+    return status;
   }
 
-  async sendMessage(to: string, message: string, imageBuffer?: Buffer, imageName?: string): Promise<boolean> {
-    console.log('📤 Intentando enviar mensaje a:', to);
-    
-    // Verificar conexión desde estado global primero
-    if (!this.isConnected && globalThis.whatsappGlobalState?.isConnected) {
-      console.log('🔄 Restaurando conexión desde estado global...');
-      this.isConnected = globalThis.whatsappGlobalState.isConnected;
-      this.phoneNumber = globalThis.whatsappGlobalState.phoneNumber;
-      this.lastSeen = globalThis.whatsappGlobalState.lastSeen;
-      
-      if (globalThis.whatsappGlobalClient) {
-        this.client = globalThis.whatsappGlobalClient;
-      }
-    }
-    
-    // Verificar que la conexión esté realmente activa
-    if (this.client) {
-      try {
-        const state = await this.client.getState();
-        console.log('📱 Estado actual del cliente:', state);
-        
-        if (state !== 'CONNECTED') {
-          console.log('❌ Cliente no está conectado, estado:', state);
-          throw new Error(`WhatsApp no está conectado. Estado: ${state}`);
-        }
-      } catch (error: any) {
-        console.log('❌ Error verificando estado del cliente:', error.message);
-        throw new Error('Error verificando conexión de WhatsApp');
-      }
-    }
-    
-    if (!this.isConnected) {
-      console.log('❌ WhatsApp no está conectado');
-      throw new Error('WhatsApp no está conectado');
-    }
-    
-    if (!this.client) {
-      console.log('❌ Cliente WhatsApp no disponible');
-      throw new Error('Cliente WhatsApp no disponible');
-    }
-
+  async sendMessage(phone: string, message: string, imageBuffer?: Buffer, imageName?: string): Promise<boolean> {
     try {
-      const phoneNumber = this.formatPhoneNumber(to);
-      console.log('📤 Enviando mensaje a número formateado:', phoneNumber);
-      
-      // Saltamos la verificación isRegisteredUser ya que causa problemas
-      // Intentaremos directamente obtener el chat
-      console.log('📱 Preparando envío directo al número:', phoneNumber);
-      
-      // Preparar el ID del chat
-      const chatId = phoneNumber.includes('@c.us') ? phoneNumber : phoneNumber + '@c.us';
-      console.log(`📱 Chat ID: ${chatId}`);
-      
-      // Verificar que el cliente está realmente listo
-      try {
-        const chats = await this.client.getChats();
-        console.log(`📱 Cliente tiene ${chats.length} chats disponibles`);
-        
-        // Verificar si ya existe un chat con este número
-        const existingChat = chats.find(chat => chat.id._serialized === chatId);
-        if (existingChat) {
-          console.log(`✅ Chat existente encontrado: ${existingChat.name || 'Sin nombre'}`);
-        } else {
-          console.log(`⚠️ Chat nuevo, se creará automáticamente`);
-        }
-      } catch (error: any) {
-        console.log('⚠️ No se pudieron obtener chats:', error.message);
+      // Verificación mínima del estado
+      if (!this.client) {
+        throw new Error('WhatsApp no está conectado');
       }
-      
-      // Preparar chat y forzar sincronización
-      await this.prepareChat(chatId);
-      
-      // Pequeño delay para estabilidad
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // MÉTODO ULTRA-ROBUSTO CON VERIFICACIÓN DE ENTREGA
+
+      // Formatear número de teléfono
+      const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
+
+      // Envío directo sin verificaciones adicionales
       if (imageBuffer && imageName) {
-        // Enviar mensaje con imagen
-        console.log('📷 Enviando mensaje con imagen:', imageName);
-        
-        const { MessageMedia } = require('whatsapp-web.js');
-        
-        // Detectar tipo de imagen
-        let mimeType = 'image/jpeg';
-        if (imageName.toLowerCase().includes('.png')) {
-          mimeType = 'image/png';
-        } else if (imageName.toLowerCase().includes('.gif')) {
-          mimeType = 'image/gif';
-        } else if (imageName.toLowerCase().includes('.webp')) {
-          mimeType = 'image/webp';
-        }
-        
-        const media = new MessageMedia(mimeType, imageBuffer.toString('base64'), imageName);
-        console.log(`📷 Media preparado: ${mimeType}, tamaño: ${imageBuffer.length} bytes`);
-        
-        // Usar método especializado para envío confiable de imágenes
-        await this.sendImageReliably(chatId, media, message);
-        
+        const media = new MessageMedia('image/jpeg', imageBuffer.toString('base64'), imageName);
+        await this.client.sendMessage(formattedPhone, media, { caption: message });
       } else {
-        // Enviar solo texto con múltiples métodos
-        console.log('📱 Enviando mensaje de texto puro...');
-        
-        // MÉTODO 1: Cliente directo
-        try {
-          const sentMessage = await this.client.sendMessage(chatId, message);
-          console.log('✅ MÉTODO 1: Texto enviado, ID:', sentMessage.id._serialized);
-          
-          await this.verifyMessageDelivery(sentMessage, 'texto método 1');
-          
-        } catch (error: any) {
-          console.log('❌ MÉTODO 1 falló, intentando MÉTODO 2...', error.message);
-          
-          // MÉTODO 2: Via chat directo
-          try {
-            const chat = await this.client.getChatById(chatId);
-            const sentMessage = await chat.sendMessage(message);
-            console.log('✅ MÉTODO 2: Texto via chat, ID:', sentMessage.id._serialized);
-            
-            await this.verifyMessageDelivery(sentMessage, 'texto método 2');
-            
-          } catch (error2: any) {
-            throw new Error(`Ambos métodos de texto fallaron: ${error.message} | ${error2.message}`);
-          }
-        }
+        await this.client.sendMessage(formattedPhone, message);
       }
-      
+
       return true;
-    } catch (error: any) {
-      console.error('❌ Error al enviar mensaje:', {
-        to: to,
-        formattedNumber: this.formatPhoneNumber(to),
-        error: error.message,
-        clientConnected: !!this.client,
-        isConnected: this.isConnected
-      });
-      throw new Error(`Error enviando mensaje a ${to}: ${error.message}`);
+    } catch (error) {
+      console.error(`❌ Error enviando mensaje a ${phone}:`, error);
+      throw error;
     }
   }
 
@@ -743,8 +595,8 @@ export class WhatsAppService {
           if (globalThis.whatsappGlobalState) {
             console.log('✅ Restaurando estado global completo:', globalThis.whatsappGlobalState);
             this.isConnected = globalThis.whatsappGlobalState.isConnected;
-            this.phoneNumber = globalThis.whatsappGlobalState.phoneNumber;
-            this.lastSeen = globalThis.whatsappGlobalState.lastSeen;
+            this.phoneNumber = globalThis.whatsappGlobalState.phoneNumber || '';
+            this.lastSeen = globalThis.whatsappGlobalState.lastSeen || null;
             this.qrCode = '';
             this.persistentQR = '';
             return this.getStatus();
@@ -1068,19 +920,11 @@ export class WhatsAppService {
   // Método para notificar cambios de conexión
   private notifyConnectionChange() {
     try {
-      // Importación dinámica para evitar problemas de dependencias circulares
-      import('../app/api/whatsapp/connection-events/route').then(module => {
-        if (module.notifyConnectionChange) {
-          const status = this.getStatus();
-          console.log('📢 Notificando cambio de estado al frontend:', {
-            isConnected: status.isConnected,
-            phoneNumber: status.phoneNumber
-          });
-          module.notifyConnectionChange(status);
-        }
-      }).catch(error => {
-        console.log('⚠️ Error notificando cambio de conexión:', error);
-      });
+      const status = this.getStatus();
+      
+      // Notificar cambio de estado a través de SSE
+      notifyConnectionChange(status);
+      
     } catch (error) {
       console.log('⚠️ Error en notifyConnectionChange:', error);
     }

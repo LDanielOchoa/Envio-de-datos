@@ -17,6 +17,9 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+// Marcar la ruta como dinámica para evitar la compilación estática
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Verificar rate limit
@@ -28,8 +31,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const forceQR = searchParams.get('forceQR') === 'true';
+    // Obtener parámetros de forma segura
+    const forceQR = request.nextUrl.searchParams.get('forceQR') === 'true';
     
     const whatsappService = WhatsAppService.getInstance();
     
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
     
     const status = whatsappService.getStatus();
     console.log('📊 Estado PURO retornado:', {
-      qrLength: status.qrCode.length,
+      qrLength: status.qrCode?.length || 0,
       isConnected: status.isConnected
     });
     

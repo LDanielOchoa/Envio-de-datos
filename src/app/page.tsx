@@ -1,10 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Contact, WhatsAppStatus, SendResults, TabType } from '../types';
-import WhatsAppSection from '../components/WhatsAppSection';
-import ContactsSection from '../components/ContactsSection';
-import MessagesSection from '../components/MessagesSection';
+import { Contact, WhatsAppStatus, SendResults, TabType } from '@/types';
+import WhatsAppSection from '@/components/WhatsAppSection';
+import ContactsSection from '@/components/ContactsSection';
+import MessagesSection from '@/components/MessagesSection';
+import SendingProgressModal from '@/components/SendingProgressModal';
+
+interface SendingProgress {
+    contactId: string;
+    contactName: string;
+    phone: string;
+    status: 'pending' | 'sending' | 'success' | 'error';
+    error?: string;
+    duration?: number;
+    timestamp?: Date;
+}
 
 export default function Home() {
     const [activeTab, setActiveTab] = useState<TabType>('whatsapp');
@@ -25,6 +36,9 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [showSendingModal, setShowSendingModal] = useState(false);
+    const [sendingProgress, setSendingProgress] = useState<SendingProgress[]>([]);
+    const [currentSendingIndex, setCurrentSendingIndex] = useState(0);
 
     // WhatsApp Functions
     const checkWhatsAppStatus = async () => {
@@ -111,7 +125,7 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                     isConnected: false,
                     qrCode: '',
                     phoneNumber: '',
-                    lastSeen: undefined
+                    lastSeen: null
                 });
             } else {
                 addLog(`❌ Error: ${data.error}`);
@@ -331,33 +345,109 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
         }
 
         setLoading(true);
+        setShowSendingModal(true);
+        setSendingProgress([]);
+        setCurrentSendingIndex(0);
         addLog(`📤 Enviando mensajes a ${contacts.length} contactos...`);
 
-        try {
-            const formData = new FormData();
-            formData.append('contacts', JSON.stringify(contacts));
-            formData.append('message', message);
+        // Inicializar progreso
+        const initialProgress: SendingProgress[] = contacts.map(contact => ({
+            contactId: contact.id,
+            contactName: `${contact.name} ${contact.lastName || ''}`.trim(),
+            phone: contact.phone,
+            status: 'pending'
+        }));
+        setSendingProgress(initialProgress);
 
-            if (selectedImage) {
-                formData.append('image', selectedImage);
-                addLog(`📷 Incluyendo imagen: ${selectedImage.name}`);
+        try {
+            // Enviar mensajes uno por uno para mostrar progreso
+            const results: any[] = [];
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (let i = 0; i < contacts.length; i++) {
+                const contact = contacts[i];
+                setCurrentSendingIndex(i + 1);
+                
+                // Actualizar estado a "enviando"
+                setSendingProgress(prev => prev.map((item, index) => 
+                    index === i 
+                        ? { ...item, status: 'sending', timestamp: new Date() }
+                        : item
+                ));
+
+                const startTime = Date.now();
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('contacts', JSON.stringify([contact]));
+                    formData.append('message', message);
+
+                    if (selectedImage) {
+                        formData.append('image', selectedImage);
+                    }
+
+                    const response = await fetch('/api/whatsapp/send-reliable', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const data = await response.json();
+                    const duration = Date.now() - startTime;
+
+                    if (data.success && data.data.successCount > 0) {
+                        // Éxito
+                        setSendingProgress(prev => prev.map((item, index) => 
+                            index === i 
+                                ? { ...item, status: 'success', duration }
+                                : item
+                        ));
+                        successCount++;
+                        results.push({ contactId: contact.id, status: 'success' });
+                        addLog(`✅ Mensaje enviado a ${contact.name} (${contact.phone}) - ${duration}ms`);
+                    } else {
+                        // Error
+                        const errorMsg = data.error || 'Error desconocido';
+                        setSendingProgress(prev => prev.map((item, index) => 
+                            index === i 
+                                ? { ...item, status: 'error', duration, error: errorMsg }
+                                : item
+                        ));
+                        errorCount++;
+                        results.push({ contactId: contact.id, status: 'error', error: errorMsg });
+                        addLog(`❌ Error enviando a ${contact.name}: ${errorMsg}`);
+                    }
+                } catch (error) {
+                    const duration = Date.now() - startTime;
+                    const errorMsg = 'Error de conexión';
+                    setSendingProgress(prev => prev.map((item, index) => 
+                        index === i 
+                            ? { ...item, status: 'error', duration, error: errorMsg }
+                            : item
+                    ));
+                    errorCount++;
+                    results.push({ contactId: contact.id, status: 'error', error: errorMsg });
+                    addLog(`❌ Error de conexión enviando a ${contact.name}`);
+                }
+
+                // Pequeña pausa entre envíos
+                if (i < contacts.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
             }
 
-            const response = await fetch('/api/whatsapp/send-reliable', {
-                method: 'POST',
-                body: formData,
+            // Actualizar resultados finales
+            setResults({
+                successCount,
+                errorCount,
+                results
             });
 
-            const data = await response.json();
-            if (data.success) {
-                setResults(data.data);
-                addLog(`✅ Mensajes enviados: ${data.data.successCount} exitosos, ${data.data.errorCount} fallidos`);
-                if (selectedImage) {
-                    addLog('📷 Mensajes enviados con imagen');
-                }
-            } else {
-                addLog(`❌ Error: ${data.error}`);
+            addLog(`✅ Envío completado: ${successCount} exitosos, ${errorCount} fallidos`);
+            if (selectedImage) {
+                addLog('📷 Mensajes enviados con imagen');
             }
+
         } catch (error) {
             addLog('❌ Error al enviar mensajes');
         } finally {
@@ -373,6 +463,12 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
 
     const clearLogs = () => {
         setLogs([]);
+    };
+
+    const closeSendingModal = () => {
+        setShowSendingModal(false);
+        setSendingProgress([]);
+        setCurrentSendingIndex(0);
     };
 
     // Effects
@@ -704,6 +800,15 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                     )}
                 </div>
             </div>
+
+            {/* Sending Progress Modal */}
+            <SendingProgressModal
+                isOpen={showSendingModal}
+                progress={sendingProgress}
+                currentIndex={currentSendingIndex}
+                totalContacts={contacts.length}
+                onClose={closeSendingModal}
+            />
         </div>
     );
 }

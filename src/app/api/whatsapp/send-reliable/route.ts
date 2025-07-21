@@ -3,10 +3,10 @@ import { Contact } from '@/types';
 import { WhatsAppService } from '@/lib/whatsapp-service';
 import { getTemplateByGroup, personalizeMessage } from '@/lib/message-templates';
 
-// Número de mensajes a enviar en paralelo
-const BATCH_SIZE = 5;
-// Tiempo de espera entre lotes (en milisegundos)
-const BATCH_DELAY = 1000;
+// Número de mensajes a enviar en paralelo (aumentado para mayor velocidad)
+const BATCH_SIZE = 10;
+// Tiempo de espera entre lotes (reducido para mayor velocidad)
+const BATCH_DELAY = 500;
 
 export async function POST(request: Request) {
     try {
@@ -14,7 +14,6 @@ export async function POST(request: Request) {
         const contactsJson = formData.get('contacts') as string;
         const message = formData.get('message') as string;
         const useTemplates = formData.get('useTemplates') === 'true';
-        const imageFile = formData.get('image') as File | null;
 
         if (!contactsJson || !message) {
             return NextResponse.json({
@@ -31,20 +30,14 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // Preparar imagen si existe
-        let imageBuffer: Buffer | null = null;
-        let imageName: string | null = null;
-        if (imageFile) {
-            imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-            imageName = imageFile.name;
-        }
-
         const whatsappService = WhatsAppService.getInstance();
         const results: any[] = [];
         let successCount = 0;
         let errorCount = 0;
 
-        // Procesar contactos en lotes
+        console.log(`🚀 Iniciando envío optimizado a ${contacts.length} contactos`);
+
+        // Procesar contactos en lotes más grandes
         for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
             const batch = contacts.slice(i, i + BATCH_SIZE);
             console.log(`📤 Procesando lote ${Math.floor(i / BATCH_SIZE) + 1} de ${Math.ceil(contacts.length / BATCH_SIZE)}`);
@@ -67,12 +60,8 @@ export async function POST(request: Request) {
                         }
                     }
 
-                    // Enviar mensaje
-                    if (imageBuffer && imageName) {
-                        await whatsappService.sendMessage(contact.phone, finalMessage, imageBuffer, imageName);
-                    } else {
-                        await whatsappService.sendMessage(contact.phone, finalMessage);
-                    }
+                    // Envío directo sin verificaciones adicionales
+                    await whatsappService.sendMessage(contact.phone, finalMessage);
 
                     successCount++;
                     return {
@@ -94,7 +83,7 @@ export async function POST(request: Request) {
             const batchResults = await Promise.all(batchPromises);
             results.push(...batchResults);
 
-            // Esperar un poco entre lotes para evitar sobrecarga
+            // Esperar menos tiempo entre lotes
             if (i + BATCH_SIZE < contacts.length) {
                 await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
             }
@@ -103,6 +92,8 @@ export async function POST(request: Request) {
             console.log(`✅ Progreso: ${Math.min(i + BATCH_SIZE, contacts.length)}/${contacts.length} mensajes procesados`);
         }
 
+        console.log(`🎉 Envío completado: ${successCount} exitosos, ${errorCount} fallidos`);
+
         return NextResponse.json({
             success: true,
             data: {
@@ -110,8 +101,7 @@ export async function POST(request: Request) {
                 successCount,
                 errorCount,
                 total: contacts.length,
-                useTemplates,
-                imageIncluded: !!imageBuffer
+                useTemplates
             }
         });
 

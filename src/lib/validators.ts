@@ -1,4 +1,10 @@
-import { Contact, WhatsAppMessage } from '@/types';
+import { Contact } from '@/types';
+
+// Definir el tipo WhatsAppMessage localmente ya que no existe en @/types
+interface WhatsAppMessage {
+  to: string;
+  message: string;
+}
 
 export class Validators {
   static validateSpreadsheetId(spreadsheetId: string): boolean {
