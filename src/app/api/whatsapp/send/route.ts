@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { WhatsAppService } from '@/lib/whatsapp-service';
+import { NextResponse } from 'next/server';
+import { WhatsAppService } from '../../../../lib/whatsapp-service';
 
 interface Contact {
   id: string;
@@ -7,7 +7,7 @@ interface Contact {
   phone: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: any) {
   try {
     // Verificar si es FormData (con imagen) o JSON
     const contentType = request.headers.get('content-type');

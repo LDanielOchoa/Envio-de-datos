@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { Contact } from '@/types';
-import { WhatsAppService } from '@/lib/whatsapp-service';
-import { getTemplateByGroup, personalizeMessage } from '@/lib/message-templates';
+import { Contact } from '../../../../types';
+import { WhatsAppService } from '../../../../lib/whatsapp-service';
+import { getTemplateByGroup, personalizeMessage } from '../../../../lib/message-templates';
 
 // Número de mensajes a enviar en paralelo (aumentado para mayor velocidad)
 const BATCH_SIZE = 10;

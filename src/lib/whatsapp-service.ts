@@ -1,6 +1,6 @@
 import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import qrcode from 'qrcode';
-import { notifyConnectionChange } from '@/lib/connection-events';
+import { notifyConnectionChange } from './connection-events';
 
 // Variable global para mantener referencia persistente del cliente
 // Usando globalThis para asegurar persistencia
