@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { WhatsAppService } from '@/lib/whatsapp-service';
+import { WhatsAppService } from '../../../../lib/whatsapp-service';
 
 // Simple rate limiter para QR
 const qrLastCalls = new Map<string, number>();

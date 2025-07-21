@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Contact, WhatsAppStatus, SendResults, TabType } from '@/types';
-import WhatsAppSection from '@/components/WhatsAppSection';
-import ContactsSection from '@/components/ContactsSection';
-import MessagesSection from '@/components/MessagesSection';
-import SendingProgressModal from '@/components/SendingProgressModal';
+import { Contact, WhatsAppStatus, SendResults, TabType } from '../types';
+import WhatsAppSection from '../components/WhatsAppSection';
+import ContactsSection from '../components/ContactsSection';
+import MessagesSection from '../components/MessagesSection';
+import SendingProgressModal from '../components/SendingProgressModal';
+import { personalizeMessage } from '../lib/message-templates';
 
 interface SendingProgress {
     contactId: string;
@@ -19,26 +20,28 @@ interface SendingProgress {
 
 export default function Home() {
     const [activeTab, setActiveTab] = useState<TabType>('whatsapp');
-    const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null);
     const [contacts, setContacts] = useState<Contact[]>([]);
-    const [message, setMessage] = useState(`Buenas Tardes, estimados Extensionistas de Fabricas de Productividad!
-
-Desde Colombia Productiva en Alianza con la Universidad Nacional de Colombia, los invitamos a participar en el curso virtual gratuito en Gestión de la Sostenibilidad en la empresa. El cual estará iniciado en el mes de Junio 2025.
-
-Si estás interesado(a), puedes inscribirte en este link
-https://bit.ly/cursofabricas
-
-Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce@unal.edu.co`);
+    const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(false);
     const [qrLoading, setQrLoading] = useState(false);
-    const [results, setResults] = useState<SendResults | null>(null);
+    const [message, setMessage] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
-    const [selectedImage, setSelectedImage] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
     const [showSendingModal, setShowSendingModal] = useState(false);
     const [sendingProgress, setSendingProgress] = useState<SendingProgress[]>([]);
     const [currentSendingIndex, setCurrentSendingIndex] = useState(0);
+    const [results, setResults] = useState<SendResults | null>(null);
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus>({
+        isConnected: false,
+        qrCode: '',
+        phoneNumber: '',
+        lastSeen: null
+    });
+
+    // Inicializar filteredContacts con contacts
+    useEffect(() => {
+        setFilteredContacts(contacts);
+    }, [contacts]);
 
     // WhatsApp Functions
     const checkWhatsAppStatus = async () => {
@@ -201,13 +204,13 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
         }
 
         setLoading(true);
-        addLog(`📁 Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        addLog(`📁 [INDIVIDUAL] Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
         try {
             const formData = new FormData();
             formData.append('file', file);
 
-            addLog('📤 Enviando archivo al servidor...');
+            addLog('📤 [INDIVIDUAL] Enviando archivo al servidor...');
             const response = await fetch('/api/sheets/contacts', {
                 method: 'POST',
                 body: formData,
@@ -221,13 +224,60 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
             if (data.success) {
                 const contactsFound = data.data.contacts;
                 setContacts(contactsFound);
-                addLog(`✅ Archivo procesado correctamente`);
-                addLog(`📊 Contactos encontrados: ${contactsFound.length}`);
+                addLog(`✅ [INDIVIDUAL] Archivo procesado correctamente`);
+                addLog(`📊 [INDIVIDUAL] Contactos encontrados: ${contactsFound.length}`);
             } else {
                 throw new Error(data.error || 'Error desconocido');
             }
         } catch (error) {
-            addLog(`❌ Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            addLog(`❌ [INDIVIDUAL] Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            setContacts([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadGroupContacts = async (file: File) => {
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+            addLog('❌ El archivo debe ser un Excel (.xlsx o .xls)');
+            return;
+        }
+
+        setLoading(true);
+        addLog(`📁 [GRUPOS] Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('sheetType', 'g29_30'); // Indicar que es carga por grupos
+
+            addLog('📤 [GRUPOS] Enviando archivo al servidor...');
+            const response = await fetch('/api/sheets/contacts', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                const contactsFound = data.data.contacts;
+                setContacts(contactsFound);
+                addLog(`✅ [GRUPOS] Archivo procesado correctamente`);
+                addLog(`📊 [GRUPOS] Contactos encontrados: ${contactsFound.length}`);
+                
+                // Mostrar estadísticas por grupo
+                const grupo29 = contactsFound.filter((c: Contact) => c.group === '29').length;
+                const grupo30 = contactsFound.filter((c: Contact) => c.group === '30').length;
+                addLog(`🏷️ [GRUPOS] Grupo 29: ${grupo29} contactos`);
+                addLog(`🏷️ [GRUPOS] Grupo 30: ${grupo30} contactos`);
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
+        } catch (error) {
+            addLog(`❌ [GRUPOS] Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
             setContacts([]);
         } finally {
             setLoading(false);
@@ -239,108 +289,54 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
         addLog('🧹 Lista de contactos limpiada');
     };
 
-    // Message Functions
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                addLog('❌ Error: Solo se permiten archivos de imagen');
-                return;
-            }
-
-            if (file.size > 5 * 1024 * 1024) {
-                addLog('❌ Error: La imagen no puede superar 5MB');
-                return;
-            }
-
-            setSelectedImage(file);
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setImagePreview(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
-
-            addLog(`📷 Imagen seleccionada: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-        }
+    // Función para filtrar contactos
+    const handleFilterContacts = (filtered: Contact[]) => {
+        setFilteredContacts(filtered);
     };
 
-    const removeImage = () => {
-        setSelectedImage(null);
-        setImagePreview(null);
-        addLog('🗑️ Imagen eliminada');
-    };
-
-    const loadDefaultImage = async () => {
-        addLog('📷 Cargando imagen desde /docs...');
-        try {
-            const response = await fetch('/api/whatsapp/load-default-image');
-            const data = await response.json();
-            if (data.success) {
-                const byteCharacters = atob(data.data.buffer);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                const file = new File([byteArray], data.data.name, { type: data.data.type });
-
-                setSelectedImage(file);
-                setImagePreview(data.data.dataUrl);
-                addLog(`✅ Imagen cargada: ${data.data.name} (${(data.data.size / 1024 / 1024).toFixed(2)}MB)`);
-            } else {
-                addLog(`❌ Error: ${data.error}`);
-            }
-        } catch (error) {
-            addLog('❌ Error cargando imagen');
-        }
-    };
-
-    const testSend = async () => {
-        if (!message.trim()) {
-            addLog('❌ Error: Escribe un mensaje primero');
-            return;
-        }
-
-        addLog('🧪 Enviando mensaje de prueba...');
-        try {
-            const formData = new FormData();
-            formData.append('phone', '573002473899');
-            formData.append('message', message);
-
-            if (selectedImage) {
-                formData.append('image', selectedImage);
-                addLog(`📷 Incluyendo imagen en prueba: ${selectedImage.name}`);
-            }
-
-            const response = await fetch('/api/whatsapp/test-send', {
-                method: 'POST',
-                body: formData,
+    // Función para filtrar contactos por plantilla
+    const handleFilterByTemplate = (templateGroup: string | null) => {
+        if (templateGroup) {
+            // Filtrar usando la misma lógica que en MessagesSection
+            const filtered = contacts.filter(contact => {
+                if (!contact.group) return false;
+                
+                // Normalizar el grupo del contacto (puede venir como "Grupo 29", "29", etc.)
+                const contactGroup = contact.group.toLowerCase().trim();
+                const templateGroupLower = templateGroup.toLowerCase().trim();
+                
+                // Verificar diferentes patrones
+                return (
+                    contactGroup === templateGroupLower || // Coincidencia exacta
+                    contactGroup === `grupo ${templateGroupLower}` || // "grupo 29" vs "29"
+                    contactGroup.endsWith(templateGroupLower) || // "Grupo 29" vs "29"
+                    contactGroup.includes(templateGroupLower) // Cualquier formato que contenga el número
+                );
             });
-
-            const data = await response.json();
-            if (data.success) {
-                addLog('✅ Mensaje de prueba enviado correctamente');
-                if (data.details?.imageIncluded) {
-                    addLog(`📷 Imagen incluida: ${data.details.imageName}`);
-                }
-                addLog('📱 ¡Revisa tu WhatsApp para verificar!');
-            } else {
-                addLog(`❌ Error en prueba: ${data.error}`);
-            }
-        } catch (error) {
-            addLog('❌ Error enviando mensaje de prueba');
+            
+            setFilteredContacts(filtered);
+            addLog(`🎯 Filtrado activado: Mostrando solo contactos del Grupo ${templateGroup} (${filtered.length} contactos)`);
+        } else {
+            // Mostrar todos los contactos
+            setFilteredContacts(contacts);
+            addLog(`📊 Filtrado desactivado: Mostrando todos los contactos (${contacts.length} contactos)`);
         }
     };
 
+    // Modificar la función sendMessages para usar filteredContacts en lugar de contacts
     const sendMessages = async () => {
         if (!message.trim()) {
             addLog('❌ Error: Por favor, ingresa un mensaje');
             return;
         }
 
-        if (contacts.length === 0) {
-            addLog('❌ Error: Por favor, carga contactos primero');
+        if (filteredContacts.length === 0) {
+            addLog('❌ Error: No hay contactos para enviar');
+            return;
+        }
+
+        if (!whatsappStatus.isConnected) {
+            addLog('❌ Error: WhatsApp no está conectado');
             return;
         }
 
@@ -348,10 +344,10 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
         setShowSendingModal(true);
         setSendingProgress([]);
         setCurrentSendingIndex(0);
-        addLog(`📤 Enviando mensajes a ${contacts.length} contactos...`);
-
+        addLog(`📤 Enviando mensajes a ${filteredContacts.length} contactos...`);
+        
         // Inicializar progreso
-        const initialProgress: SendingProgress[] = contacts.map(contact => ({
+        const initialProgress: SendingProgress[] = filteredContacts.map(contact => ({
             contactId: contact.id,
             contactName: `${contact.name} ${contact.lastName || ''}`.trim(),
             phone: contact.phone,
@@ -365,8 +361,8 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
             let successCount = 0;
             let errorCount = 0;
 
-            for (let i = 0; i < contacts.length; i++) {
-                const contact = contacts[i];
+            for (let i = 0; i < filteredContacts.length; i++) {
+                const contact = filteredContacts[i];
                 setCurrentSendingIndex(i + 1);
                 
                 // Actualizar estado a "enviando"
@@ -379,13 +375,16 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                 const startTime = Date.now();
                 
                 try {
+                    // Personalizar el mensaje para este contacto específico
+                    const personalizedMessage = personalizeMessage(message, contact);
+                    
                     const formData = new FormData();
                     formData.append('contacts', JSON.stringify([contact]));
-                    formData.append('message', message);
-
-                    if (selectedImage) {
-                        formData.append('image', selectedImage);
-                    }
+                    formData.append('message', personalizedMessage); // Usar el mensaje personalizado
+                    
+                    // if (selectedImage) { // Eliminado
+                    //     formData.append('image', selectedImage); // Eliminado
+                    // } // Eliminado
 
                     const response = await fetch('/api/whatsapp/send-reliable', {
                         method: 'POST',
@@ -431,7 +430,7 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                 }
 
                 // Pequeña pausa entre envíos
-                if (i < contacts.length - 1) {
+                if (i < filteredContacts.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
@@ -444,14 +443,64 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
             });
 
             addLog(`✅ Envío completado: ${successCount} exitosos, ${errorCount} fallidos`);
-            if (selectedImage) {
-                addLog('📷 Mensajes enviados con imagen');
-            }
+            // if (selectedImage) { // Eliminado
+            //     addLog('📷 Mensajes enviados con imagen'); // Eliminado
+            // } // Eliminado
 
         } catch (error) {
             addLog('❌ Error al enviar mensajes');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Función para probar el envío de mensajes
+    const testSend = async () => {
+        if (!message.trim()) {
+            addLog('❌ Error: Por favor, ingresa un mensaje');
+            return;
+        }
+
+        if (!whatsappStatus.isConnected) {
+            addLog('❌ Error: WhatsApp no está conectado');
+            return;
+        }
+
+        try {
+            addLog('🧪 Enviando mensaje de prueba...');
+            
+            // Crear un contacto de prueba o usar el primero disponible
+            const testContact = filteredContacts.length > 0 
+                ? filteredContacts[0] 
+                : {
+                    id: 'test_contact',
+                    name: 'Usuario',
+                    lastName: 'De Prueba',
+                    phone: whatsappStatus.phoneNumber,
+                    status: 'pending'
+                };
+            
+            // Personalizar el mensaje para el contacto de prueba
+            const personalizedMessage = personalizeMessage(message, testContact);
+            
+            const formData = new FormData();
+            formData.append('phone', testContact.phone);
+            formData.append('message', personalizedMessage);
+
+            const response = await fetch('/api/whatsapp/test-send', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                addLog(`✅ Mensaje de prueba enviado correctamente a ${testContact.name}`);
+            } else {
+                addLog(`❌ Error en prueba: ${data.error}`);
+            }
+        } catch (error) {
+            addLog('❌ Error enviando mensaje de prueba');
         }
     };
 
@@ -631,7 +680,9 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                             contacts={contacts}
                             loading={loading}
                             onLoadContacts={loadContacts}
+                            onLoadGroupContacts={loadGroupContacts}
                             onClearContacts={clearContacts}
+                            onFilterContacts={handleFilterContacts}
                         />
                     )}
 
@@ -642,14 +693,10 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                             contacts={contacts}
                             results={results}
                             loading={loading}
-                            selectedImage={selectedImage}
-                            imagePreview={imagePreview}
                             whatsappStatus={whatsappStatus}
-                            onImageChange={handleImageChange}
-                            onRemoveImage={removeImage}
-                            onLoadDefaultImage={loadDefaultImage}
                             onTestSend={testSend}
                             onSendMessages={sendMessages}
+                            onFilterByTemplate={handleFilterByTemplate}
                         />
                     )}
 
@@ -806,7 +853,7 @@ Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce
                 isOpen={showSendingModal}
                 progress={sendingProgress}
                 currentIndex={currentSendingIndex}
-                totalContacts={contacts.length}
+                totalContacts={filteredContacts.length}
                 onClose={closeSendingModal}
             />
         </div>

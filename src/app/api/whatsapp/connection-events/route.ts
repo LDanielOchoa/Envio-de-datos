@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { WhatsAppService } from '@/lib/whatsapp-service';
-import { addConnection, removeConnection } from '@/lib/connection-events';
+import { WhatsAppService } from '../../../../lib/whatsapp-service';
+import { addConnection, removeConnection } from '../../../../lib/connection-events';
 
 // Marcar la ruta como dinámica para evitar la compilación estática
 export const dynamic = 'force-dynamic';

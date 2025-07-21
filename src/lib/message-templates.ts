@@ -1,4 +1,4 @@
-import { MessageTemplate } from '@/types';
+import { MessageTemplate } from '../types';
 
 // Plantillas de mensajes por grupos
 export const messageTemplates: MessageTemplate[] = [
@@ -104,31 +104,42 @@ export function personalizeMessage(template: string, contact: any): string {
   
   // Reemplazar nombre y apellido juntos si están disponibles
   if (contact.name) {
+    // Asegurarse de que ambos campos estén definidos antes de combinarlos
     const fullName = contact.lastName 
       ? `${contact.name} ${contact.lastName}` 
       : contact.name;
-    message = message.replace(/{nombre_apellidos}/g, fullName);
+    
+    // Versión en mayúsculas para {nombre_apellidos}
+    const fullNameUpperCase = fullName.toUpperCase();
+    message = message.replace(/{nombre_apellidos}/g, fullNameUpperCase);
+    
+    // También reemplazar {NOMBRE_APELLIDOS} (ya en mayúsculas)
+    message = message.replace(/{NOMBRE_APELLIDOS}/g, fullNameUpperCase);
   }
   
   // Reemplazar solo nombre si está disponible
   if (contact.name) {
     message = message.replace(/{nombre}/g, contact.name);
+    message = message.replace(/{NOMBRE}/g, contact.name.toUpperCase());
   }
   
   // Reemplazar solo apellido si está disponible
   if (contact.lastName) {
     message = message.replace(/{apellido}/g, contact.lastName);
+    message = message.replace(/{APELLIDO}/g, contact.lastName.toUpperCase());
   }
   
   // Reemplazar grupo si está disponible
   if (contact.group) {
     message = message.replace(/{grupo}/g, contact.group);
+    message = message.replace(/{GRUPO}/g, contact.group.toUpperCase());
   }
   
   // Reemplazar gestor si está disponible
   if (contact.gestor) {
     message = message.replace(/{gestor}/g, contact.gestor);
+    message = message.replace(/{GESTOR}/g, contact.gestor.toUpperCase());
   }
   
   return message;
-} 
+}

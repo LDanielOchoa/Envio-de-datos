@@ -19,7 +19,8 @@ export type WhatsAppStatus = {
 
 export enum SheetType {
   UNITARIO = 'unitario',
-  GRUPOS = 'grupos'
+  GRUPOS = 'grupos',
+  G29_30 = 'g29_30'
 } 
 
 export interface SendResult {

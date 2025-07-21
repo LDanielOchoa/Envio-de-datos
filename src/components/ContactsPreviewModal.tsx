@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Contact } from '@/types';
+import { Contact } from '../types';
 
 interface ContactsPreviewModalProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { read, utils } from 'xlsx';
-import { Contact } from '@/types';
+import { Contact, SheetType } from '@/types';
 
 export async function POST(request: Request) {
     try {
@@ -9,6 +9,9 @@ export async function POST(request: Request) {
         // Obtener el archivo del FormData
         const formData = await request.formData();
         const file = formData.get('file') as File;
+        const sheetType = formData.get('sheetType') as string || 'unitario';
+        
+        console.log(`📊 Tipo de hoja solicitada: ${sheetType}`);
         
         if (!file) {
             console.log('❌ No se proporcionó ningún archivo');
@@ -37,9 +40,16 @@ export async function POST(request: Request) {
         console.log('📊 Leyendo archivo Excel...');
         const workbook = read(arrayBuffer);
         
-        // Obtener la hoja específica
-        const sheetName = 'Contacto Col-Productiva07-07-25';
-        console.log(`📑 Buscando hoja: ${sheetName}`);
+        // Determinar el nombre de la hoja según el tipo
+        let sheetName = 'Contacto Col-Productiva07-07-25'; // Hoja por defecto
+        
+        if (sheetType === 'g29_30') {
+            sheetName = 'G29&30'; // Hoja para grupos 29 y 30
+            console.log(`📑 Modo GRUPOS activado, buscando hoja: ${sheetName}`);
+        } else {
+            console.log(`📑 Modo UNITARIO, buscando hoja: ${sheetName}`);
+        }
+        
         const worksheet = workbook.Sheets[sheetName];
         
         if (!worksheet) {
@@ -64,80 +74,12 @@ export async function POST(request: Request) {
 
         console.log(`📊 Filas encontradas: ${data.length}`);
         
-        // Encontrar las columnas necesarias
-        let phoneIndex = -1;
-        let statusIndex = -1;
-        
-        // Buscar las columnas en las primeras filas
-        console.log('🔍 Buscando columnas necesarias...');
-        for (let rowIndex = 0; rowIndex < Math.min(5, data.length); rowIndex++) {
-            const row = data[rowIndex];
-            if (!Array.isArray(row)) continue;
-            
-            console.log(`📋 Analizando fila ${rowIndex}:`, row);
-            
-            for (let colIndex = 0; colIndex < row.length; colIndex++) {
-                const value = String(row[colIndex] || '').toLowerCase();
-                console.log(`   Columna ${colIndex}: "${value}"`);
-                
-                if (value.includes('teléfonobeneficiario') || value.includes('telefonobeneficiario')) {
-                    phoneIndex = colIndex;
-                    statusIndex = colIndex + 2; // El estado está dos columnas después del teléfono
-                    console.log(`✅ Encontrada columna teléfono en posición ${colIndex} y estado en ${statusIndex}`);
-                }
-            }
-            if (phoneIndex >= 0) break;
+        // Procesar según el tipo de hoja
+        if (sheetType === 'g29_30') {
+            return processGroupContacts(data);
+        } else {
+            return processUnitaryContacts(data);
         }
-        
-        if (phoneIndex === -1) {
-            console.log('❌ No se encontraron todas las columnas necesarias');
-            return NextResponse.json({
-                success: false,
-                error: 'No se encontró la columna de teléfono'
-            }, { status: 400 });
-        }
-        
-        const contacts: Contact[] = [];
-        console.log('👥 Procesando contactos...');
-        
-        // Procesar las filas
-        for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
-            const row = data[rowIndex];
-            if (!Array.isArray(row) || !row[phoneIndex]) continue;
-            
-            const phone = String(row[phoneIndex]).trim();
-            const status = row[statusIndex] ? String(row[statusIndex]).trim() : '';
-            
-            console.log(`   Fila ${rowIndex}: Teléfono=${phone}, Estado=${status}`);
-            
-            // Solo incluir si está sin contactar
-            if (status === 'Sin contactar') {
-                // Formatear teléfono
-                let formattedPhone = phone.replace(/\D/g, '');
-                if (!formattedPhone.startsWith('57')) {
-                    formattedPhone = '57' + formattedPhone;
-                }
-                
-                contacts.push({
-                    id: `contact_${rowIndex}`,
-                    name: `Contacto ${rowIndex}`,
-                    phone: formattedPhone,
-                    status: 'pending'
-                });
-                
-                console.log(`✅ Contacto agregado: ${formattedPhone} (Fila ${rowIndex})`);
-            }
-        }
-        
-        console.log(`📱 Total de contactos encontrados: ${contacts.length}`);
-        
-        return NextResponse.json({
-            success: true,
-            data: {
-                contacts,
-                total: contacts.length
-            }
-        });
         
     } catch (error) {
         console.error('❌ Error al procesar contactos:', error);
@@ -146,4 +88,187 @@ export async function POST(request: Request) {
             error: error instanceof Error ? error.message : 'Error desconocido'
         }, { status: 500 });
     }
+}
+
+// Función para procesar contactos unitarios (formato original)
+function processUnitaryContacts(data: any[]) {
+    // Encontrar las columnas necesarias
+    let phoneIndex = -1;
+    let statusIndex = -1;
+    
+    // Buscar las columnas en las primeras filas
+    console.log('🔍 Buscando columnas necesarias...');
+    for (let rowIndex = 0; rowIndex < Math.min(5, data.length); rowIndex++) {
+        const row = data[rowIndex];
+        if (!Array.isArray(row)) continue;
+        
+        console.log(`📋 Analizando fila ${rowIndex}:`, row);
+        
+        for (let colIndex = 0; colIndex < row.length; colIndex++) {
+            const value = String(row[colIndex] || '').toLowerCase();
+            console.log(`   Columna ${colIndex}: "${value}"`);
+            
+            if (value.includes('teléfonobeneficiario') || value.includes('telefonobeneficiario')) {
+                phoneIndex = colIndex;
+                statusIndex = colIndex + 2; // El estado está dos columnas después del teléfono
+                console.log(`✅ Encontrada columna teléfono en posición ${colIndex} y estado en ${statusIndex}`);
+            }
+        }
+        if (phoneIndex >= 0) break;
+    }
+    
+    if (phoneIndex === -1) {
+        console.log('❌ No se encontraron todas las columnas necesarias');
+        return NextResponse.json({
+            success: false,
+            error: 'No se encontró la columna de teléfono'
+        }, { status: 400 });
+    }
+    
+    const contacts: Contact[] = [];
+    console.log('👥 Procesando contactos...');
+    
+    // Procesar las filas
+    for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+        const row = data[rowIndex];
+        if (!Array.isArray(row) || !row[phoneIndex]) continue;
+        
+        const phone = String(row[phoneIndex]).trim();
+        const status = row[statusIndex] ? String(row[statusIndex]).trim() : '';
+        
+        console.log(`   Fila ${rowIndex}: Teléfono=${phone}, Estado=${status}`);
+        
+        // Solo incluir si está sin contactar
+        if (status === 'Sin contactar') {
+            // Formatear teléfono
+            let formattedPhone = phone.replace(/\D/g, '');
+            if (!formattedPhone.startsWith('57')) {
+                formattedPhone = '57' + formattedPhone;
+            }
+            
+            contacts.push({
+                id: `contact_${rowIndex}`,
+                name: `Contacto ${rowIndex}`,
+                phone: formattedPhone,
+                status: 'pending'
+            });
+            
+            console.log(`✅ Contacto agregado: ${formattedPhone} (Fila ${rowIndex})`);
+        }
+    }
+    
+    console.log(`📱 Total de contactos encontrados: ${contacts.length}`);
+    
+    return NextResponse.json({
+        success: true,
+        data: {
+            contacts,
+            total: contacts.length
+        }
+    });
+}
+
+// Función para procesar contactos por grupos (G29&30)
+function processGroupContacts(data: any[]) {
+    // Encontrar las columnas necesarias para grupos
+    let nombresIndex = -1;
+    let apellidosIndex = -1;
+    let phoneIndex = -1;
+    let groupIndex = -1;
+    let resultadoContactoIndex = -1;
+    
+    // Buscar las columnas en las primeras filas
+    console.log('🔍 [GRUPOS] Buscando columnas necesarias...');
+    for (let rowIndex = 0; rowIndex < Math.min(5, data.length); rowIndex++) {
+        const row = data[rowIndex];
+        if (!Array.isArray(row)) continue;
+        
+        console.log(`📋 [GRUPOS] Analizando fila ${rowIndex}:`, row);
+        
+        for (let colIndex = 0; colIndex < row.length; colIndex++) {
+            const value = String(row[colIndex] || '').toLowerCase().trim();
+            console.log(`   [GRUPOS] Columna ${colIndex}: "${value}"`);
+            
+            if (value.includes('nombres beneficiario') || value === 'nombres beneficiario') {
+                nombresIndex = colIndex;
+                console.log(`✅ [GRUPOS] Encontrada columna "Nombres Beneficiario" en posición ${colIndex}`);
+            } else if (value.includes('apellidos beneficiario') || value === 'apellidos beneficiario') {
+                apellidosIndex = colIndex;
+                console.log(`✅ [GRUPOS] Encontrada columna "Apellidos Beneficiario" en posición ${colIndex}`);
+            } else if (value.includes('teléfono') || value.includes('telefono') || value === 'telefono') {
+                phoneIndex = colIndex;
+                console.log(`✅ [GRUPOS] Encontrada columna teléfono en posición ${colIndex}`);
+            } else if (value.includes('grupo') || value === 'grupo') {
+                groupIndex = colIndex;
+                console.log(`✅ [GRUPOS] Encontrada columna grupo en posición ${colIndex}`);
+            } else if (value.includes('resultado contacto') || value === 'resultado contacto') {
+                resultadoContactoIndex = colIndex;
+                console.log(`✅ [GRUPOS] Encontrada columna resultado contacto en posición ${colIndex}`);
+            }
+        }
+        if (nombresIndex >= 0 && apellidosIndex >= 0 && phoneIndex >= 0 && groupIndex >= 0) break;
+    }
+    
+    if (nombresIndex === -1 || apellidosIndex === -1 || phoneIndex === -1 || groupIndex === -1) {
+        console.log('❌ [GRUPOS] No se encontraron todas las columnas necesarias');
+        return NextResponse.json({
+            success: false,
+            error: 'No se encontraron todas las columnas necesarias (nombres beneficiario, apellidos beneficiario, teléfono, grupo)'
+        }, { status: 400 });
+    }
+    
+    const contacts: Contact[] = [];
+    console.log('👥 [GRUPOS] Procesando contactos por grupos...');
+    
+    // Procesar las filas
+    for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+        const row = data[rowIndex];
+        if (!Array.isArray(row) || !row[phoneIndex]) continue;
+        
+        const nombres = row[nombresIndex] ? String(row[nombresIndex]).trim() : '';
+        const apellidos = row[apellidosIndex] ? String(row[apellidosIndex]).trim() : '';
+        const phone = String(row[phoneIndex]).trim();
+        const group = row[groupIndex] ? String(row[groupIndex]).trim() : '';
+        const resultadoContacto = resultadoContactoIndex >= 0 && row[resultadoContactoIndex] 
+            ? String(row[resultadoContactoIndex]).trim() 
+            : '';
+        
+        console.log(`   [GRUPOS] Fila ${rowIndex}: Nombres=${nombres}, Apellidos=${apellidos}, Teléfono=${phone}, Grupo=${group}, Resultado=${resultadoContacto}`);
+        
+        // Verificar si debemos incluir este contacto
+        // Si tenemos la columna "Resultado Contacto", solo incluir "Sin contactar"
+        // Si no tenemos la columna, incluir todos
+        const incluirContacto = resultadoContactoIndex === -1 || resultadoContacto.toLowerCase() === 'sin contactar';
+        
+        if (incluirContacto) {
+            // Formatear teléfono
+            let formattedPhone = phone.replace(/\D/g, '');
+            if (!formattedPhone.startsWith('57')) {
+                formattedPhone = '57' + formattedPhone;
+            }
+            
+            contacts.push({
+                id: `contact_${rowIndex}`,
+                name: nombres,
+                lastName: apellidos,
+                phone: formattedPhone,
+                status: 'pending',
+                group: group
+            });
+            
+            console.log(`✅ [GRUPOS] Contacto agregado: ${nombres} ${apellidos} - ${formattedPhone} (Grupo: ${group})`);
+        } else {
+            console.log(`⏭️ [GRUPOS] Contacto omitido por estado: ${resultadoContacto}`);
+        }
+    }
+    
+    console.log(`📱 [GRUPOS] Total de contactos encontrados: ${contacts.length}`);
+    
+    return NextResponse.json({
+        success: true,
+        data: {
+            contacts,
+            total: contacts.length
+        }
+    });
 } 

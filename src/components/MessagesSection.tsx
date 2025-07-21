@@ -1,6 +1,6 @@
 import React from 'react';
-import { Contact, SendResults } from '@/types';
-import { messageTemplates, personalizeMessage } from '@/lib/message-templates';
+import { Contact, SendResults } from '../types';
+import { messageTemplates, personalizeMessage } from '../lib/message-templates';
 
 interface MessagesSectionProps {
   message: string;
@@ -8,14 +8,10 @@ interface MessagesSectionProps {
   contacts: Contact[];
   results: SendResults | null;
   loading: boolean;
-  selectedImage: File | null;
-  imagePreview: string | null;
   whatsappStatus: any;
-  onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRemoveImage: () => void;
-  onLoadDefaultImage: () => void;
   onTestSend: () => void;
   onSendMessages: () => void;
+  onFilterByTemplate?: (templateGroup: string | null) => void;
 }
 
 export default function MessagesSection({
@@ -24,32 +20,99 @@ export default function MessagesSection({
   contacts,
   results,
   loading,
-  selectedImage,
-  imagePreview,
   whatsappStatus,
-  onImageChange,
-  onRemoveImage,
-  onLoadDefaultImage,
   onTestSend,
-  onSendMessages
+  onSendMessages,
+  onFilterByTemplate
 }: MessagesSectionProps) {
   const [selectedTemplate, setSelectedTemplate] = React.useState('default');
   const [showTemplatePreview, setShowTemplatePreview] = React.useState(false);
+  const [previewContact, setPreviewContact] = React.useState<Contact | null>(null);
+
+  // Filtrar contactos según la plantilla seleccionada
+  const getFilteredContacts = () => {
+    const template = messageTemplates.find(t => t.id === selectedTemplate);
+    if (template && template.group) {
+      // Manejar diferentes formatos de grupo
+      return contacts.filter(contact => {
+        if (!contact.group || !template.group) return false;
+        
+        // Normalizar el grupo del contacto (puede venir como "Grupo 29", "29", etc.)
+        const contactGroup = contact.group.toLowerCase().trim();
+        const templateGroup = template.group.toLowerCase().trim();
+        
+        // Verificar diferentes patrones
+        return (
+          contactGroup === templateGroup || // Coincidencia exacta
+          contactGroup === `grupo ${templateGroup}` || // "grupo 29" vs "29"
+          contactGroup.endsWith(templateGroup) || // "Grupo 29" vs "29"
+          contactGroup.includes(templateGroup) // Cualquier formato que contenga el número
+        );
+      });
+    }
+    return contacts; // Si no hay grupo específico, mostrar todos
+  };
+
+  const filteredContacts = getFilteredContacts();
+
+  // Seleccionar un contacto aleatorio para la previsualización
+  React.useEffect(() => {
+    if (filteredContacts.length > 0) {
+      const randomIndex = Math.floor(Math.random() * filteredContacts.length);
+      setPreviewContact(filteredContacts[randomIndex]);
+    } else {
+      setPreviewContact(null);
+    }
+  }, [filteredContacts]);
 
   const handleTemplateChange = (templateId: string) => {
     const template = messageTemplates.find(t => t.id === templateId);
     if (template) {
       setSelectedTemplate(templateId);
       setMessage(template.content);
+      
+      // Notificar al componente padre sobre el filtrado por grupo
+      if (onFilterByTemplate) {
+        onFilterByTemplate(template.group || null);
+      }
     }
   };
 
   const getPreviewMessage = () => {
-    if (contacts.length > 0) {
-      const sampleContact = contacts[0];
-      return personalizeMessage(message, sampleContact);
+    if (previewContact) {
+      return personalizeMessage(message, previewContact);
     }
     return message;
+  };
+
+  // Resaltar las partes personalizadas en el mensaje de previsualización
+  const highlightPersonalization = (text: string) => {
+    if (!previewContact) return text;
+    
+    // Crear un nombre completo en mayúsculas para identificarlo en el texto
+    const fullNameUpperCase = previewContact.lastName 
+      ? `${previewContact.name} ${previewContact.lastName}`.toUpperCase()
+      : previewContact.name.toUpperCase();
+    
+    // Dividir el texto por el nombre en mayúsculas para resaltarlo
+    const parts = text.split(fullNameUpperCase);
+    
+    if (parts.length === 1) return text; // No se encontró el nombre
+    
+    return (
+      <>
+        {parts.map((part, index) => (
+          <React.Fragment key={index}>
+            {part}
+            {index < parts.length - 1 && (
+              <span className="bg-yellow-200 font-semibold px-1 rounded">
+                {fullNameUpperCase}
+              </span>
+            )}
+          </React.Fragment>
+        ))}
+      </>
+    );
   };
 
   return (
@@ -64,6 +127,43 @@ export default function MessagesSection({
           Envía el mensaje oficial de Colombia Productiva sobre el curso de Gestión de Sostenibilidad
         </p>
       </div>
+
+      {/* Personalización de mensajes - Banner informativo */}
+      {contacts.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-2xl border border-yellow-200 p-4">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
+              <span className="text-yellow-700">✨</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-800">Personalización Automática</h3>
+              <p className="text-sm text-yellow-700">
+                Los mensajes incluirán automáticamente los <strong>nombres y apellidos</strong> de cada contacto en MAYÚSCULAS donde aparezca {'{nombre_apellidos}'}. 
+                Se utilizan las columnas <strong>"Nombres Beneficiario"</strong> y <strong>"Apellidos Beneficiario"</strong>.
+              </p>
+            </div>
+            {/* Mostrar información de filtrado */}
+            {(() => {
+              const template = messageTemplates.find(t => t.id === selectedTemplate);
+              if (template && template.group) {
+                return (
+                  <div className="ml-4 text-right">
+                    <div className="bg-yellow-200 rounded-lg px-3 py-2">
+                      <p className="text-sm font-semibold text-yellow-800">
+                        🎯 Grupo {template.group}
+                      </p>
+                      <p className="text-xs text-yellow-700">
+                        {filteredContacts.length} contactos
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Message Templates Selector */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6 mb-8">
@@ -95,7 +195,7 @@ export default function MessagesSection({
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-semibold text-gray-900 text-sm">{template.name}</h4>
                 {template.group && (
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Grupo {template.group}
                   </span>
                 )}
@@ -120,17 +220,24 @@ export default function MessagesSection({
               <h4 className="font-semibold text-gray-900">
                 Vista Previa: {messageTemplates.find(t => t.id === selectedTemplate)?.name}
               </h4>
-              {contacts.length > 0 && (
+              {previewContact && (
                 <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                  📝 Personalizado para: {contacts[0].name}
+                  📝 Personalizado para: <strong>{previewContact.name} {previewContact.lastName || ''}</strong> 
+                  {previewContact.group && ` (Grupo ${previewContact.group})`}
                 </span>
               )}
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+            <div className="bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto">
               <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-                {getPreviewMessage()}
+                {previewContact ? highlightPersonalization(getPreviewMessage()) : message}
               </p>
             </div>
+            {previewContact && (
+              <div className="mt-3 text-xs text-gray-500 flex items-center">
+                <span className="mr-1">💡</span>
+                <span>Las partes resaltadas en amarillo son personalizadas para cada contacto. Se utilizan <strong>nombre y apellido</strong> en MAYÚSCULAS.</span>
+              </div>
+            )}
           </div>
         )}
         
@@ -179,94 +286,53 @@ export default function MessagesSection({
                   {message.length}/1000 caracteres
                 </p>
                 <p className="text-xs text-blue-600 font-medium">
-                  📱 {contacts.length} contactos listos
+                  📱 {filteredContacts.length} contactos {(() => {
+                    const template = messageTemplates.find(t => t.id === selectedTemplate);
+                    return template && template.group ? `(Grupo ${template.group})` : 'listos';
+                  })()}
+                </p>
+              </div>
+              
+              {/* Ayuda de personalización */}
+              <div className="mt-3 bg-blue-50 p-3 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  <span className="font-semibold">💡 Tip:</span> Usa <code className="bg-blue-100 px-1 py-0.5 rounded">{'{nombre_apellidos}'}</code> para incluir el nombre y apellido del contacto en MAYÚSCULAS. Se combinan las columnas "Nombres Beneficiario" y "Apellidos Beneficiario".
                 </p>
               </div>
             </div>
 
-            {/* Image Upload */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                📷 Imagen Adjunta (Opcional)
-              </label>
-
-              {!selectedImage ? (
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all duration-200">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={onImageChange}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <label htmlFor="image-upload" className="cursor-pointer block">
-                      <div className="space-y-3">
-                        <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center mx-auto">
-                          <span className="text-2xl">📷</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-700 mb-1">
-                            Haz clic para subir imagen
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            PNG, JPG hasta 5MB
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="text-gray-400 text-sm mb-3">o</div>
-                    <button
-                      onClick={onLoadDefaultImage}
-                      className="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      📷 Cargar Imagen del Curso
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="relative">
-                    <img
-                      src={imagePreview!}
-                      alt="Vista previa"
-                      className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
-                    />
-                    <button
-                      onClick={onRemoveImage}
-                      className="absolute top-3 right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors duration-200 shadow-lg"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-                    <span className="text-sm text-gray-700 font-medium">
-                      📷 {selectedImage.name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {(selectedImage.size / 1024 / 1024).toFixed(2)}MB
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Action Buttons */}
             <div className="space-y-3">
+              {/* Advertencia si no hay contactos del grupo seleccionado */}
+              {(() => {
+                const template = messageTemplates.find(t => t.id === selectedTemplate);
+                if (template && template.group && filteredContacts.length === 0) {
+                  return (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+                      <div className="flex items-center">
+                        <span className="text-orange-500 mr-2">⚠️</span>
+                        <p className="text-sm text-orange-700">
+                          <strong>No hay contactos del Grupo {template.group}</strong>. 
+                          Selecciona una plantilla diferente o carga contactos del grupo correspondiente.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <button
                 onClick={onTestSend}
-                disabled={loading || !message.trim() || !whatsappStatus?.isConnected}
+                disabled={loading || !message.trim() || !whatsappStatus?.isConnected || filteredContacts.length === 0}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                {selectedImage ? '🧪📷 Probar Mensaje con Imagen' : '🧪 Probar Mensaje'}
+                🧪 Probar Mensaje
               </button>
 
               <button
                 onClick={onSendMessages}
-                disabled={loading || contacts.length === 0 || !message.trim() || !whatsappStatus?.isConnected}
+                disabled={loading || filteredContacts.length === 0 || !message.trim() || !whatsappStatus?.isConnected}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-4 rounded-xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 {loading ? (
@@ -275,7 +341,10 @@ export default function MessagesSection({
                     Enviando mensajes...
                   </span>
                 ) : (
-                  `📤 Enviar a ${contacts.length} contactos`
+                  `📤 Enviar a ${filteredContacts.length} contactos${(() => {
+                    const template = messageTemplates.find(t => t.id === selectedTemplate);
+                    return template && template.group ? ` (Grupo ${template.group})` : '';
+                  })()}`
                 )}
               </button>
             </div>
@@ -301,14 +370,14 @@ export default function MessagesSection({
                 </div>
                 <div className="flex items-center">
                   <span className="mr-2">👥</span>
-                  <span>Contactos: {contacts.length} cargados</span>
+                  <span>Contactos: {filteredContacts.length} {(() => {
+                    const template = messageTemplates.find(t => t.id === selectedTemplate);
+                    if (template && template.group) {
+                      return `del Grupo ${template.group} (${contacts.length} total cargados)`;
+                    }
+                    return 'cargados';
+                  })()}</span>
                 </div>
-                {selectedImage && (
-                  <div className="flex items-center">
-                    <span className="mr-2">📷</span>
-                    <span>Imagen: {selectedImage.name}</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>

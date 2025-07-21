@@ -1,5 +1,5 @@
 import React from 'react';
-import { WhatsAppStatus } from '@/types';
+import { WhatsAppStatus } from '../types';
 
 interface WhatsAppSectionProps {
   whatsappStatus: WhatsAppStatus | null;
