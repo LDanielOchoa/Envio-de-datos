@@ -3,6 +3,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// Solo ejecutar en desarrollo
+if (process.env.NODE_ENV === 'production') {
+  console.log('🚀 Entorno de producción detectado, saltando configuración de desarrollo...');
+  process.exit(0);
+}
+
 console.log('🚀 Configurando WhatsApp Sheets Integration...\n');
 
 // Crear directorio de logs si no existe
