@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { parse } from 'csv-parse/sync';
-import { Contact } from '@/types';
+import { Contact } from '../types';
 import { JSDOM } from 'jsdom';
 
 // Tipos de hojas de Google Sheets soportadas

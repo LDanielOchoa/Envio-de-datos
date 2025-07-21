@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { messageTemplates } from '@/lib/message-templates';
+import { messageTemplates } from '../lib/message-templates';
 
 interface OfficialMessageProps {
   onUseMessage: (message: string) => void;

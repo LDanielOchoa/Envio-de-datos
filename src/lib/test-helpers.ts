@@ -1,4 +1,4 @@
-import { Contact } from '@/types';
+import { Contact } from '../types';
 
 // Definir el tipo WhatsAppMessage localmente ya que no existe en @/types
 interface WhatsAppMessage {

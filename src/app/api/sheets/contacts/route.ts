@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { read, utils } from 'xlsx';
-import { Contact, SheetType } from '@/types';
+import { Contact, SheetType } from '../../../../types';
 
 export async function POST(request: Request) {
     try {

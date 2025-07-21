@@ -1,5 +1,5 @@
 // Implementación directa de eventos de conexión para evitar referencias circulares
-import { WhatsAppStatus } from '@/types';
+import { WhatsAppStatus } from '../types';
 
 // Store para mantener conexiones SSE activas
 const connections = new Set<ReadableStreamDefaultController>();

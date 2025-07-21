@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Contact, WhatsAppStatus } from '@/types';
+import { Contact, WhatsAppStatus } from '../types';
 import GroupInfo from './GroupInfo';
 
 interface DashboardProps {

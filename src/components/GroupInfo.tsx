@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Contact } from '@/types';
+import { Contact } from '../types';
 
 interface GroupInfoProps {
   contacts: Contact[];

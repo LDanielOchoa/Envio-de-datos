@@ -1,5 +1,5 @@
 import { readFile } from 'xlsx';
-import { Contact } from '@/types';
+import { Contact } from '../types';
 import path from 'path';
 
 export async function getContactsFromExcel(): Promise<Contact[]> {
