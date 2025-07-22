@@ -51,11 +51,14 @@ COPY . .
 # Establecer NODE_ENV=production para evitar la ejecución del script setup durante la instalación
 ENV NODE_ENV=production
 
-# Instalar dependencias
-RUN npm install
+# Instalar TODAS las dependencias, incluyendo devDependencies
+RUN npm install --include=dev
 
 # Construir la aplicación
 RUN npm run build
+
+# Limpiar dependencias de desarrollo y reinstalar solo las de producción
+RUN npm ci --only=production
 
 # Exponer el puerto
 EXPOSE 3000
