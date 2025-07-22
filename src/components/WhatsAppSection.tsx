@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { WhatsAppStatus } from '../types';
 
 interface WhatsAppSectionProps {
@@ -20,6 +22,58 @@ export default function WhatsAppSection({
   onGenerateQR,
   onRefreshClient
 }: WhatsAppSectionProps) {
+  // Estado para manejar reintentos automáticos
+  const [autoRetryCount, setAutoRetryCount] = useState(0);
+  const [qrExpiration, setQrExpiration] = useState<number | null>(null);
+  const [qrUpdateTimer, setQrUpdateTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Función para manejar reintentos automáticos
+  const handleAutoRetry = useCallback(() => {
+    if (autoRetryCount < 3 && !whatsappStatus?.qrCode && !qrLoading) {
+      console.log(`🔄 Reintento automático #${autoRetryCount + 1}`);
+      setAutoRetryCount(prev => prev + 1);
+      onGenerateQR();
+    }
+  }, [autoRetryCount, whatsappStatus?.qrCode, qrLoading, onGenerateQR]);
+
+  // Efecto para manejar reintentos automáticos
+  useEffect(() => {
+    if (!whatsappStatus?.qrCode && !qrLoading) {
+      const retryTimeout = setTimeout(handleAutoRetry, 3000);
+      return () => clearTimeout(retryTimeout);
+    } else if (whatsappStatus?.qrCode) {
+      setAutoRetryCount(0); // Resetear contador cuando se obtiene el QR
+      // Establecer temporizador de expiración (20 segundos)
+      setQrExpiration(Date.now() + 20000);
+    }
+  }, [whatsappStatus?.qrCode, qrLoading, handleAutoRetry]);
+
+  // Efecto para actualizar el QR automáticamente
+  useEffect(() => {
+    if (whatsappStatus?.qrCode && !whatsappStatus?.isConnected) {
+      // Actualizar QR cada 15 segundos
+      const timer = setInterval(() => {
+        console.log('🔄 Actualizando QR automáticamente');
+        onGenerateQR();
+      }, 15000);
+      
+      setQrUpdateTimer(timer);
+      return () => {
+        if (timer) clearInterval(timer);
+      };
+    } else if (whatsappStatus?.isConnected && qrUpdateTimer) {
+      clearInterval(qrUpdateTimer);
+      setQrUpdateTimer(null);
+    }
+  }, [whatsappStatus?.qrCode, whatsappStatus?.isConnected, onGenerateQR]);
+
+  // Calcular tiempo restante del QR
+  const getQrTimeRemaining = () => {
+    if (!qrExpiration) return null;
+    const remaining = Math.max(0, Math.floor((qrExpiration - Date.now()) / 1000));
+    return remaining;
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -148,6 +202,10 @@ export default function WhatsAppSection({
                         className="w-64 h-64 mx-auto border-4 border-blue-200 rounded-2xl shadow-2xl"
                       />
                       <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-pulse"></div>
+                      {/* Temporizador */}
+                      <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                        {getQrTimeRemaining()}s
+                      </div>
                     </div>
                     
                     <div className="bg-blue-50 rounded-xl p-4">
@@ -159,18 +217,39 @@ export default function WhatsAppSection({
                         <p>2. Toca Menú → WhatsApp Web</p>
                         <p>3. Escanea este código QR</p>
                       </div>
+                      <div className="mt-3 text-xs text-blue-600">
+                        El código se actualizará automáticamente en {getQrTimeRemaining()}s
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <div className="py-12">
                     <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-6"></div>
-                    <p className="text-gray-600 mb-4">Generando código QR...</p>
-                    <button
-                      onClick={onGenerateQR}
-                      className="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200"
-                    >
-                      ↻ Reintentar generación
-                    </button>
+                    <p className="text-gray-600 mb-4">
+                      {qrLoading ? (
+                        'Generando código QR...'
+                      ) : autoRetryCount > 0 ? (
+                        `Reintentando (${autoRetryCount}/3)...`
+                      ) : (
+                        'Esperando código QR...'
+                      )}
+                    </p>
+                    {!qrLoading && autoRetryCount >= 3 && (
+                      <div className="space-y-2">
+                        <p className="text-red-600 text-sm">
+                          No se pudo generar el código QR automáticamente
+                        </p>
+                        <button
+                          onClick={() => {
+                            setAutoRetryCount(0);
+                            onGenerateQR();
+                          }}
+                          className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+                        >
+                          ↻ Intentar nuevamente
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
