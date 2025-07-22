@@ -45,14 +45,14 @@ RUN apt-get update && apt-get install -y \
 # Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar package.json y package-lock.json
-COPY package*.json ./
+# Copiar todo el código fuente primero
+COPY . .
+
+# Establecer NODE_ENV=production para evitar la ejecución del script setup durante la instalación
+ENV NODE_ENV=production
 
 # Instalar dependencias
 RUN npm install
-
-# Copiar el resto de la aplicación
-COPY . .
 
 # Construir la aplicación
 RUN npm run build
