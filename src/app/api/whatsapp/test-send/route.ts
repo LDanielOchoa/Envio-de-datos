@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
-import { PDFService } from '../../../../lib/pdf-service';
 
 export async function POST(request: Request) {
     try {
-      const formData = await request.formData();
+        const formData = await request.formData();
         const phone = formData.get('phone') as string;
         const message = formData.get('message') as string;
-        const includePDF = formData.get('includePDF') === 'true';
         
         // Obtener sessionId del header
         const sessionId = request.headers.get('X-Session-Id') || 'default';
@@ -38,48 +36,17 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // Preparar PDF si se requiere
-        let pdfBase64: string | undefined;
-        let pdfFilename: string | undefined;
-        
-        if (includePDF) {
-            try {
-                console.log('📄 Preparando PDF para prueba...');
-                const pdfExists = await PDFService.checkDefaultPDFExists();
-                
-                if (!pdfExists) {
-                    return NextResponse.json({
-                        success: false,
-                        error: 'El archivo PDF por defecto no existe'
-                    }, { status: 400 });
-                }
-                
-                pdfBase64 = await PDFService.readPDFAsBase64();
-                pdfFilename = PDFService.getDefaultPDFConfig().filename;
-                
-                console.log('✅ PDF preparado para prueba');
-            } catch (error) {
-                console.error('❌ Error preparando PDF:', error);
-                return NextResponse.json({
-                    success: false,
-                    error: `Error preparando PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`
-                }, { status: 500 });
-            }
-        }
-
         // Intentar enviar el mensaje
-        const success = await whatsappService.sendMessage(phone, message, undefined, undefined, pdfBase64, pdfFilename);
+        const success = await whatsappService.sendMessage(phone, message);
         
         if (success) {
             console.log(`✅ [${sessionId}] Mensaje de prueba enviado exitosamente`);
-      return NextResponse.json({
-        success: true,
+            return NextResponse.json({
+                success: true,
                 data: {
                     message: 'Mensaje enviado correctamente',
-          phone, 
-                    sessionId,
-                    includePDF,
-                    pdfFilename: includePDF ? pdfFilename : undefined
+                    phone, 
+                    sessionId
                 }
             });
         } else {
@@ -88,12 +55,12 @@ export async function POST(request: Request) {
                 error: 'Error al enviar mensaje'
             }, { status: 500 });
         }
-
+        
     } catch (error) {
-        console.error('❌ Error en prueba de envío:', error);
+        console.error('❌ Error en test-send:', error);
         return NextResponse.json({
-          success: false, 
+            success: false,
             error: error instanceof Error ? error.message : 'Error desconocido'
         }, { status: 500 });
-  }
+    }
 } 

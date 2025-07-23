@@ -14,6 +14,7 @@ declare global {
       };
     };
   };
+  
   var whatsappGlobalClient: Client | null;
   var whatsappGlobalState: {
     isConnected: boolean;
@@ -553,14 +554,10 @@ export class WhatsAppService {
     return status;
   }
 
-  async sendMessage(phone: string, message: string, imageBuffer?: Buffer, imageName?: string, pdfBase64?: string, pdfFilename?: string): Promise<boolean> {
+  async sendMessage(phone: string, message: string): Promise<boolean> {
     try {
       console.log(`📤 [${this.sessionId}] Intentando enviar mensaje a ${phone}`);
       console.log(`📊 [${this.sessionId}] Parámetros:`, {
-        hasImage: !!imageBuffer,
-        imageName,
-        hasPDF: !!pdfBase64,
-        pdfFilename,
         messageLength: message.length
       });
       
@@ -586,67 +583,15 @@ export class WhatsAppService {
       const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
       console.log(`📱 [${this.sessionId}] Enviando a: ${formattedPhone}`);
 
-      // Envío con diferentes tipos de contenido
-      if (pdfBase64 && pdfFilename) {
-        // Envío con PDF
-        console.log(`📄 [${this.sessionId}] Enviando mensaje con PDF: ${pdfFilename} (${pdfBase64.length} chars)`);
-        try {
-          // Calcular el tamaño del archivo en bytes
-          const filesize = Buffer.byteLength(pdfBase64, 'base64');
-          console.log(`📊 [${this.sessionId}] Tamaño del PDF: ${filesize} bytes`);
-          
-          console.log(`🔧 [${this.sessionId}] Creando MessageMedia para PDF...`);
-          const media = new MessageMedia('application/pdf', pdfBase64, pdfFilename, filesize);
-          console.log(`✅ [${this.sessionId}] MessageMedia creado exitosamente`);
-          
-          console.log(`📤 [${this.sessionId}] Enviando PDF con caption...`);
-          const result = await this.client.sendMessage(formattedPhone, media, { caption: message });
-          console.log(`✅ [${this.sessionId}] PDF enviado exitosamente:`, result.id._serialized);
-        } catch (pdfError) {
-          console.error(`❌ [${this.sessionId}] Error enviando PDF:`, pdfError);
-          // Intentar enviar solo texto si falla el PDF
-          console.log(`🔄 [${this.sessionId}] Intentando enviar solo texto...`);
-          await this.client!.sendMessage(formattedPhone, message);
-        }
-      } else if (imageBuffer && imageName) {
-        // Envío con imagen
-        console.log(`🖼️ [${this.sessionId}] Enviando mensaje con imagen: ${imageName}`);
-        const imageBase64 = imageBuffer.toString('base64');
-        const filesize = imageBuffer.length;
-        console.log(`📊 [${this.sessionId}] Tamaño de la imagen: ${filesize} bytes`);
-        
-        console.log(`🔧 [${this.sessionId}] Creando MessageMedia para imagen...`);
-        const media = new MessageMedia('image/jpeg', imageBase64, imageName, filesize);
-        console.log(`✅ [${this.sessionId}] MessageMedia creado exitosamente`);
-        
-        console.log(`📤 [${this.sessionId}] Enviando imagen con caption...`);
-        await this.client.sendMessage(formattedPhone, media, { caption: message });
-        console.log(`✅ [${this.sessionId}] Imagen enviada exitosamente`);
-      } else {
-        // Envío solo texto
-        console.log(`💬 [${this.sessionId}] Enviando mensaje de texto`);
-        const result = await this.client.sendMessage(formattedPhone, message);
-        console.log(`✅ [${this.sessionId}] Texto enviado exitosamente:`, result.id._serialized);
-      }
+      // Envío solo texto
+      console.log(`💬 [${this.sessionId}] Enviando mensaje de texto`);
+      const result = await this.client.sendMessage(formattedPhone, message);
+      console.log(`✅ [${this.sessionId}] Texto enviado exitosamente:`, result.id._serialized);
 
       console.log(`✅ [${this.sessionId}] Mensaje enviado exitosamente a ${phone}`);
       return true;
     } catch (error) {
       console.error(`❌ [${this.sessionId}] Error enviando mensaje a ${phone}:`, error);
-      
-      // Si es un error de PDF, intentar enviar solo texto
-      if (pdfBase64 && error instanceof Error && error.message.includes('PDF')) {
-        console.log(`🔄 [${this.sessionId}] Reintentando sin PDF...`);
-        try {
-          const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
-          await this.client!.sendMessage(formattedPhone, message);
-          console.log(`✅ [${this.sessionId}] Mensaje de texto enviado como fallback`);
-          return true;
-        } catch (fallbackError) {
-          console.error(`❌ [${this.sessionId}] Error en fallback:`, fallbackError);
-        }
-      }
-      
       throw error;
     }
   }
@@ -907,58 +852,6 @@ export class WhatsAppService {
       
     } catch (error: any) {
       console.log(`❌ Error verificando entrega de ${type}:`, error.message);
-    }
-  }
-
-  // Método especializado para envío confiable de imágenes
-  private async sendImageReliably(chatId: string, media: any, message: string): Promise<any> {
-    console.log('📷 Enviando imagen con mensaje...');
-    
-    try {
-      // 1. Obtener el chat directamente
-      console.log('🔍 Obteniendo chat:', chatId);
-      const chat = await this.client!.getChatById(chatId);
-      console.log('✅ Chat obtenido:', chat.name || 'Sin nombre');
-      
-      // 2. Intentar enviar con método directo del chat
-      console.log('📤 Enviando imagen con caption...');
-      const sentMedia = await chat.sendMessage(media, { caption: message, sendMediaAsSticker: false });
-      console.log('✅ Imagen enviada con caption, ID:', sentMedia.id._serialized);
-      
-      // 3. Esperar un poco para asegurar entrega
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 4. Enviar texto como respaldo para garantizar entrega
-      console.log('📝 Enviando texto como respaldo...');
-      const textMsg = await chat.sendMessage(message);
-      console.log('✅ Texto enviado como respaldo, ID:', textMsg.id._serialized);
-      
-      return { imageMessage: sentMedia, textMessage: textMsg };
-      
-    } catch (error: any) {
-      console.log('❌ Error enviando imagen:', error.message);
-      
-      // Método alternativo: Envío separado
-      console.log('📷 Intentando envío separado...');
-      
-      try {
-        // 1. Primero enviar la imagen sin texto
-        const imageMsg = await this.client!.sendMessage(chatId, media);
-        console.log('✅ Imagen enviada, ID:', imageMsg.id._serialized);
-        
-        // 2. Esperar un poco
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // 3. Enviar el texto como mensaje separado
-        const textMsg = await this.client!.sendMessage(chatId, message);
-        console.log('✅ Texto enviado, ID:', textMsg.id._serialized);
-        
-        return { imageMessage: imageMsg, textMessage: textMsg };
-        
-      } catch (error2: any) {
-        console.log('❌ Error con método alternativo:', error2.message);
-        throw new Error(`Error enviando mensaje: ${error.message}`);
-      }
     }
   }
 

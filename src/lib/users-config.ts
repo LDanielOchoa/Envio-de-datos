@@ -18,10 +18,10 @@ export const USERS: UserConfig[] = [
   },
   {
     id: 'user2', 
-    username: 'usuario2',
+    username: 'David Barrera',
     password: 'colombia2024',
     name: 'Usuario 2',
-    role: 'user',
+    role: 'admin',
     whatsappSessionId: 'session-usuario2'
   }
 ];

@@ -12,8 +12,6 @@ interface MessagesSectionProps {
   loading: boolean;
   whatsappStatus: any;
   authState: AuthState;
-  includePDF: boolean;
-  setIncludePDF: (include: boolean) => void;
   onTestSend: () => void;
   onSendMessages: () => void;
   onFilterByTemplate?: (templateGroup: string | null) => void;
@@ -27,19 +25,12 @@ export default function MessagesSection({
   loading,
   whatsappStatus,
   authState,
-  includePDF,
-  setIncludePDF,
   onTestSend,
   onSendMessages,
   onFilterByTemplate
 }: MessagesSectionProps) {
-  const [selectedTemplate, setSelectedTemplate] = React.useState('default');
+  const [selectedTemplate, setSelectedTemplate] = React.useState<string>('default');
   const [showTemplatePreview, setShowTemplatePreview] = React.useState(false);
-  const [pdfStatus, setPdfStatus] = React.useState<{
-    exists: boolean;
-    size: number;
-    isValid: boolean;
-  } | null>(null);
   const [previewContact, setPreviewContact] = React.useState<Contact | null>(null);
 
   // Filtrar contactos según la plantilla seleccionada
@@ -67,28 +58,6 @@ export default function MessagesSection({
   };
 
   const filteredContacts = getFilteredContacts();
-
-  // Verificar estado del PDF al cargar el componente
-  React.useEffect(() => {
-    const checkPdfStatus = async () => {
-      try {
-        const response = await fetch('/api/pdf/status');
-        const data = await response.json();
-        
-        if (data.success) {
-          setPdfStatus({
-            exists: data.data.exists,
-            size: data.data.info.size,
-            isValid: data.data.isValid
-          });
-        }
-      } catch (error) {
-        console.error('Error verificando estado del PDF:', error);
-      }
-    };
-    
-    checkPdfStatus();
-  }, []);
 
   // Seleccionar un contacto aleatorio para la previsualización
   React.useEffect(() => {

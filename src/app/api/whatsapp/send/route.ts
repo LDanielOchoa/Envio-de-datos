@@ -9,26 +9,10 @@ interface Contact {
 
 export async function POST(request: any) {
   try {
-    // Verificar si es FormData (con imagen) o JSON
-    const contentType = request.headers.get('content-type');
-    let contacts, message, imageFile = null;
-    
-    if (contentType?.includes('multipart/form-data')) {
-      // Con imagen
-      const formData = await request.formData();
-      contacts = JSON.parse(formData.get('contacts') as string);
-      message = formData.get('message') as string;
-      imageFile = formData.get('image') as File | null;
-      
-      if (imageFile) {
-        console.log('📷 Imagen recibida:', imageFile.name, imageFile.size);
-      }
-    } else {
-      // Sin imagen (JSON tradicional)
-      const body = await request.json();
-      contacts = body.contacts;
-      message = body.message;
-    }
+    // Procesar JSON con contactos y mensaje
+    const body = await request.json();
+    const contacts = body.contacts;
+    const message = body.message;
 
     if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
       return NextResponse.json(
@@ -123,25 +107,6 @@ export async function POST(request: any) {
       );
     }
 
-    // Procesar imagen si existe
-    let imageBuffer: Buffer | undefined;
-    let imageName: string | undefined;
-    
-    if (imageFile) {
-      try {
-        const arrayBuffer = await imageFile.arrayBuffer();
-        imageBuffer = Buffer.from(arrayBuffer);
-        imageName = imageFile.name;
-        console.log('📷 Imagen procesada:', imageName, 'Tamaño:', imageBuffer.length, 'bytes');
-      } catch (error) {
-        console.error('❌ Error procesando imagen:', error);
-        return NextResponse.json(
-          { success: false, error: 'Error procesando la imagen' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Enviar mensajes uno por uno
     const results: any[] = [];
     let successCount = 0;
@@ -153,12 +118,10 @@ export async function POST(request: any) {
         // Personalizar mensaje con el nombre del contacto
         const personalizedMessage = message.replace('{nombre}', contact.name);
         
-        // Enviar mensaje (con imagen si existe)
+        // Enviar mensaje (solo texto)
         const success = await whatsappService.sendMessage(
           contact.phone, 
-          personalizedMessage,
-          imageBuffer,
-          imageName
+          personalizedMessage
         );
         
         results.push({
@@ -200,11 +163,11 @@ export async function POST(request: any) {
       }
     });
   } catch (error) {
-    console.error('❌ Error al enviar mensajes:', error);
+    console.error('❌ Error en API Send:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido'
+        error: 'Error interno del servidor'
       },
       { status: 500 }
     );

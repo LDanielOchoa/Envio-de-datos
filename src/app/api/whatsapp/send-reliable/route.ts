@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { Contact } from '../../../../types';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
 import { getTemplateByGroup, personalizeMessage } from '../../../../lib/message-templates';
-import { PDFService } from '../../../../lib/pdf-service';
 
 // Número de mensajes a enviar en paralelo (aumentado para mayor velocidad)
 const BATCH_SIZE = 10;
@@ -15,7 +14,6 @@ export async function POST(request: Request) {
         const contactsJson = formData.get('contacts') as string;
         const message = formData.get('message') as string;
         const useTemplates = formData.get('useTemplates') === 'true';
-        const includePDF = formData.get('includePDF') === 'true';
         
         // Obtener sessionId del header
         const sessionId = request.headers.get('X-Session-Id') || 'default';
@@ -40,39 +38,7 @@ export async function POST(request: Request) {
         let successCount = 0;
         let errorCount = 0;
 
-        // Preparar PDF si se requiere
-        let pdfBase64: string | undefined;
-        let pdfFilename: string | undefined;
-        
-        if (includePDF) {
-            try {
-                console.log('📄 Preparando PDF para envío...');
-                const pdfExists = await PDFService.checkDefaultPDFExists();
-                
-                if (!pdfExists) {
-                    return NextResponse.json({
-                        success: false,
-                        error: 'El archivo PDF por defecto no existe'
-                    }, { status: 400 });
-                }
-                
-                const pdfInfo = await PDFService.getPDFInfo();
-                console.log(`📄 PDF encontrado: ${pdfInfo.filename} (${pdfInfo.size} bytes)`);
-                
-                pdfBase64 = await PDFService.readPDFAsBase64();
-                pdfFilename = PDFService.getDefaultPDFConfig().filename;
-                
-                console.log('✅ PDF preparado para envío');
-            } catch (error) {
-                console.error('❌ Error preparando PDF:', error);
-                return NextResponse.json({
-                    success: false,
-                    error: `Error preparando PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`
-                }, { status: 500 });
-            }
-        }
-
-        console.log(`🚀 Iniciando envío optimizado a ${contacts.length} contactos${includePDF ? ' con PDF' : ''}`);
+        console.log(`🚀 Iniciando envío optimizado a ${contacts.length} contactos`);
 
         // Procesar contactos en lotes más grandes
         for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
@@ -97,8 +63,8 @@ export async function POST(request: Request) {
                         }
                     }
 
-                    // Envío con o sin PDF
-                    await whatsappService.sendMessage(contact.phone, finalMessage, undefined, undefined, pdfBase64, pdfFilename);
+                    // Envío solo texto
+                    await whatsappService.sendMessage(contact.phone, finalMessage);
 
                     successCount++;
                     return {
@@ -138,9 +104,7 @@ export async function POST(request: Request) {
                 successCount,
                 errorCount,
                 total: contacts.length,
-                useTemplates,
-                includePDF,
-                pdfFilename: includePDF ? pdfFilename : undefined
+                useTemplates
             }
         });
 

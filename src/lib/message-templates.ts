@@ -40,7 +40,7 @@ https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56222&cs=1dBDBZ
 
 2️⃣Diligencia los documentos adjuntos (formatos requeridos). 
 📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
-📁 Docuemnto en pdf se debe descragar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+📁 Docuemnto en pdf se debe descragar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
 
 3⃣ Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
 

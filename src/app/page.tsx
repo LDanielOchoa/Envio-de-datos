@@ -38,7 +38,6 @@ export default function Home() {
     const [currentSendingIndex, setCurrentSendingIndex] = useState(0);
     const [results, setResults] = useState<SendResults | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-    const [includePDF, setIncludePDF] = useState(false);
     const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus>({
         isConnected: false,
         qrCode: '',
@@ -444,11 +443,6 @@ export default function Home() {
                     const formData = new FormData();
                     formData.append('contacts', JSON.stringify([contact]));
                     formData.append('message', personalizedMessage); // Usar el mensaje personalizado
-                    formData.append('includePDF', includePDF.toString());
-                    
-                    // if (selectedImage) { // Eliminado
-                    //     formData.append('image', selectedImage); // Eliminado
-                    // } // Eliminado
 
                     const response = await fetch('/api/whatsapp/send-reliable', {
                         method: 'POST',
@@ -510,9 +504,6 @@ export default function Home() {
             });
 
             addLog(`✅ Envío completado: ${successCount} exitosos, ${errorCount} fallidos`);
-            // if (selectedImage) { // Eliminado
-            //     addLog('📷 Mensajes enviados con imagen'); // Eliminado
-            // } // Eliminado
 
         } catch (error) {
             addLog('❌ Error al enviar mensajes');
@@ -558,7 +549,6 @@ export default function Home() {
             const formData = new FormData();
             formData.append('phone', testContact.phone);
             formData.append('message', personalizedMessage);
-            formData.append('includePDF', includePDF.toString());
 
             const response = await fetch('/api/whatsapp/test-send', {
                 method: 'POST',
@@ -791,8 +781,6 @@ export default function Home() {
                             loading={loading}
                             whatsappStatus={whatsappStatus}
                             authState={authState}
-                            includePDF={includePDF}
-                            setIncludePDF={setIncludePDF}
                             onTestSend={testSend}
                             onSendMessages={sendMessages}
                             onFilterByTemplate={handleFilterByTemplate}
