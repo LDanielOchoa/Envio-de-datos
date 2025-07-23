@@ -590,8 +590,20 @@ export class WhatsAppService {
 
       console.log(`✅ [${this.sessionId}] Mensaje enviado exitosamente a ${phone}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ [${this.sessionId}] Error enviando mensaje a ${phone}:`, error);
+      
+      // Detectar errores específicos de números no válidos
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('not-found') || 
+          errorMessage.includes('not-authorized') || 
+          errorMessage.includes('invalid') ||
+          errorMessage.includes('no existe') ||
+          errorMessage.includes('number not found')) {
+        console.log(`❌ [${this.sessionId}] Número ${phone} no válido - error específico detectado`);
+        throw new Error('Número no registrado en WhatsApp');
+      }
+      
       throw error;
     }
   }
@@ -609,11 +621,30 @@ export class WhatsAppService {
       try {
         // Intentar obtener información del chat para verificar si existe
         const chat = await this.client.getChatById(formattedPhone);
-        const isValid = !!chat;
+        
+        // Verificar si el chat existe y tiene información válida
+        const isValid = chat && chat.id && chat.id.user;
+        
         console.log(`🔍 [${this.sessionId}] Verificación de número ${phone}: ${isValid ? 'VÁLIDO' : 'NO VÁLIDO'}`);
+        
+        if (isValid) {
+          console.log(`✅ [${this.sessionId}] Número ${phone} verificado como válido`);
+        } else {
+          console.log(`❌ [${this.sessionId}] Número ${phone} verificado como NO válido`);
+        }
         return isValid;
-      } catch (chatError) {
-        console.log(`⚠️ [${this.sessionId}] No se pudo verificar número ${phone}:`, chatError);
+      } catch (chatError: any) {
+        // Si el error indica que el número no existe, es inválido
+        const errorMessage = chatError.message || '';
+        if (errorMessage.includes('not-found') || 
+            errorMessage.includes('not-authorized') || 
+            errorMessage.includes('invalid') ||
+            errorMessage.includes('no existe')) {
+          console.log(`❌ [${this.sessionId}] Número ${phone} NO existe en WhatsApp`);
+          return false;
+        }
+        
+        console.log(`⚠️ [${this.sessionId}] Error verificando número ${phone}:`, chatError.message);
         return false;
       }
     } catch (error) {

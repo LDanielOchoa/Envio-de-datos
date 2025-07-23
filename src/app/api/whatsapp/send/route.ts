@@ -10,6 +10,8 @@ interface Contact {
   name: string;
   lastName?: string;
   phone: string;
+  group?: string;
+  gestor?: string;
 }
 
 export async function POST(request: any) {
@@ -121,7 +123,16 @@ export async function POST(request: any) {
         console.log(`📱 Procesando contacto: ${contact.name} (${contact.phone})`);
         
         // Personalizar mensaje con todos los datos del contacto
+        console.log(`🔧 Personalizando mensaje para contacto:`, {
+            name: contact.name,
+            lastName: contact.lastName,
+            group: contact.group,
+            gestor: contact.gestor
+        });
+        
         const personalizedMessage = personalizeMessage(message, contact);
+        
+        console.log(`🔧 Mensaje final:`, personalizedMessage.substring(0, 100) + '...');
         
         // Enviar mensaje (solo texto)
         const success = await whatsappService.sendMessage(

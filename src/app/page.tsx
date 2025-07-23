@@ -422,7 +422,15 @@ export default function Home() {
             const formData = new FormData();
             formData.append('contacts', JSON.stringify(filteredContacts));
             formData.append('message', message);
-            formData.append('useTemplates', 'false'); // Por ahora sin plantillas
+            
+            // Determinar si usar plantillas basado en si el mensaje contiene {nombre_apellidos}
+            const useTemplates = message.includes('{nombre_apellidos}') || message.includes('{grupo}');
+            formData.append('useTemplates', useTemplates.toString());
+            
+            // Por defecto, no saltar validación (validar números)
+            formData.append('skipValidation', 'false');
+            
+            console.log('🔧 Enviando con useTemplates:', useTemplates, 'skipValidation: false');
 
             const response = await fetch('/api/whatsapp/send-reliable', {
                 method: 'POST',

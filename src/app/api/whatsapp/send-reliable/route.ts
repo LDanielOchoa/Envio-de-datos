@@ -17,6 +17,7 @@ export async function POST(request: Request) {
         const contactsJson = formData.get('contacts') as string;
         const message = formData.get('message') as string;
         const useTemplates = formData.get('useTemplates') === 'true';
+        const skipValidation = formData.get('skipValidation') === 'true'; // Nueva opción para saltar validación
         
         // Obtener sessionId del header
         const sessionId = request.headers.get('X-Session-Id') || 'default';
@@ -63,45 +64,76 @@ export async function POST(request: Request) {
                     // Personalizar mensaje con los datos del contacto
                     if (useTemplates && contact.group) {
                         // Si se usan plantillas, personalizar mensaje según grupo
+                        console.log(`🔧 [${sessionId}] Buscando plantilla para grupo: ${contact.group}`);
                         const template = getTemplateByGroup(contact.group);
                         if (template) {
+                            console.log(`🔧 [${sessionId}] Plantilla encontrada: ${template.name}`);
                             finalMessage = personalizeMessage(template.content, {
-                                nombre: contact.name || '',
-                                apellido: contact.lastName || '',
-                                grupo: contact.group,
+                                name: contact.name || '',
+                                lastName: contact.lastName || '',
+                                group: contact.group,
+                                gestor: contact.gestor || ''
+                            });
+                        } else {
+                            console.log(`🔧 [${sessionId}] No se encontró plantilla para grupo ${contact.group}, personalizando mensaje original`);
+                            finalMessage = personalizeMessage(message, {
+                                name: contact.name || '',
+                                lastName: contact.lastName || '',
+                                group: contact.group || '',
                                 gestor: contact.gestor || ''
                             });
                         }
                     } else {
                         // Si no se usan plantillas, personalizar el mensaje directamente
+                        console.log(`🔧 [${sessionId}] Personalizando mensaje para contacto:`, {
+                            name: contact.name,
+                            lastName: contact.lastName,
+                            group: contact.group,
+                            gestor: contact.gestor
+                        });
+                        
                         finalMessage = personalizeMessage(message, {
-                            nombre: contact.name || '',
-                            apellido: contact.lastName || '',
-                            grupo: contact.group || '',
+                            name: contact.name || '',
+                            lastName: contact.lastName || '',
+                            group: contact.group || '',
                             gestor: contact.gestor || ''
                         });
+                        
+                        console.log(`🔧 [${sessionId}] Mensaje final:`, finalMessage.substring(0, 100) + '...');
                     }
 
-                    // Verificar si el número existe en WhatsApp antes del envío
-                    const formattedPhone = contact.phone.includes('@c.us') ? contact.phone : `${contact.phone}@c.us`;
-                    
-                    try {
-                        // Verificar si el número existe en WhatsApp
-                        const isValid = await whatsappService.isNumberValid(contact.phone);
-                        if (!isValid) {
-                            console.log(`⚠️ [${sessionId}] Número no válido: ${contact.phone}`);
+                    // Verificar si el número existe en WhatsApp antes del envío (opcional)
+                    if (!skipValidation) {
+                        const formattedPhone = contact.phone.includes('@c.us') ? contact.phone : `${contact.phone}@c.us`;
+                        
+                        try {
+                            console.log(`🔍 [${sessionId}] Verificando número: ${contact.phone}`);
+                            const isValid = await whatsappService.isNumberValid(contact.phone);
+                            if (!isValid) {
+                                console.log(`⚠️ [${sessionId}] Número no válido: ${contact.phone}`);
+                                invalidNumbersCount++;
+                                invalidNumbers.push(contact.phone);
+                                return {
+                                    contactId: contact.id,
+                                    status: 'invalid_number',
+                                    error: 'Número no registrado en WhatsApp',
+                                    phone: contact.phone
+                                };
+                            }
+                            console.log(`✅ [${sessionId}] Número válido: ${contact.phone}`);
+                        } catch (chatError) {
+                            console.log(`⚠️ [${sessionId}] No se pudo verificar número ${contact.phone}, marcando como inválido`);
                             invalidNumbersCount++;
                             invalidNumbers.push(contact.phone);
                             return {
                                 contactId: contact.id,
                                 status: 'invalid_number',
-                                error: 'Número no registrado en WhatsApp',
+                                error: 'No se pudo verificar el número',
                                 phone: contact.phone
                             };
                         }
-                    } catch (chatError) {
-                        console.log(`⚠️ [${sessionId}] No se pudo verificar número ${contact.phone}, continuando...`);
-                        // Continuar con el envío aunque no se pueda verificar
+                    } else {
+                        console.log(`⏭️ [${sessionId}] Saltando verificación para: ${contact.phone}`);
                     }
 
                     // Envío solo texto

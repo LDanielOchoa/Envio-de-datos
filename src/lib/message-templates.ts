@@ -40,7 +40,7 @@ https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56222&cs=1dBDBZ
 
 2️⃣Diligencia los documentos adjuntos (formatos requeridos). 
 📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
-📁 Docuemnto en pdf se debe descragar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+📁 Docuemnto en pdf se debe descargar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
 
 3⃣ Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
 
@@ -79,7 +79,7 @@ https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56223&cs=1FczQe
 
 2️⃣Diligencia los documentos adjuntos (formatos requeridos).
 📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
-📁 Docuemnto en pdf se debe descragar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+📁 Docuemnto en pdf se debe descargar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
 
 3⃣Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
 
@@ -108,11 +108,54 @@ export function getTemplateById(id: string): MessageTemplate | undefined {
 
 // Función para obtener una plantilla por grupo
 export function getTemplateByGroup(group: string): MessageTemplate | undefined {
-  return messageTemplates.find(template => template.group === group);
+  console.log(`🔧 Buscando plantilla para grupo: "${group}"`);
+  
+  // Normalizar el grupo (puede venir como "Grupo 29", "29", etc.)
+  const normalizedGroup = group.toLowerCase().trim();
+  const groupNumber = normalizedGroup.replace(/grupo\s*/, ''); // Remover "grupo " si existe
+  
+  console.log(`🔧 Grupo normalizado: "${groupNumber}"`);
+  
+  // Buscar coincidencia exacta primero
+  let template = messageTemplates.find(template => template.group === group);
+  if (template) {
+    console.log(`🔧 Plantilla encontrada por coincidencia exacta: ${template.name}`);
+    return template;
+  }
+  
+  // Buscar por número de grupo
+  template = messageTemplates.find(template => template.group === groupNumber);
+  if (template) {
+    console.log(`🔧 Plantilla encontrada por número de grupo: ${template.name}`);
+    return template;
+  }
+  
+  // Buscar por cualquier formato que contenga el número
+  template = messageTemplates.find(template => 
+    template.group && (
+      normalizedGroup.includes(template.group) || 
+      template.group.includes(groupNumber)
+    )
+  );
+  
+  if (template) {
+    console.log(`🔧 Plantilla encontrada por coincidencia parcial: ${template.name}`);
+    return template;
+  }
+  
+  console.log(`🔧 No se encontró plantilla para grupo: "${group}"`);
+  return undefined;
 }
 
 // Función para personalizar un mensaje con los datos del contacto
 export function personalizeMessage(template: string, contact: any): string {
+  console.log('🔧 personalizeMessage llamado con:', {
+    templateLength: template.length,
+    contact: contact,
+    hasName: !!contact.name,
+    hasLastName: !!contact.lastName
+  });
+  
   let message = template;
   
   // Reemplazar nombre y apellido juntos si están disponibles
@@ -124,6 +167,8 @@ export function personalizeMessage(template: string, contact: any): string {
     
     // Versión en mayúsculas para {nombre_apellidos}
     const fullNameUpperCase = fullName.toUpperCase();
+    console.log('🔧 Reemplazando {nombre_apellidos} con:', fullNameUpperCase);
+    
     message = message.replace(/{nombre_apellidos}/g, fullNameUpperCase);
     
     // También reemplazar {NOMBRE_APELLIDOS} (ya en mayúsculas)
@@ -154,5 +199,6 @@ export function personalizeMessage(template: string, contact: any): string {
     message = message.replace(/{GESTOR}/g, contact.gestor.toUpperCase());
   }
   
+  console.log('🔧 Mensaje final personalizado:', message.substring(0, 100) + '...');
   return message;
 }
