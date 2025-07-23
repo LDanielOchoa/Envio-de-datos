@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
+import { personalizeMessage } from '../../../../lib/message-templates';
 
 // Marcar la ruta como dinámica para evitar la compilación estática
 export const dynamic = 'force-dynamic';
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 interface Contact {
   id: string;
   name: string;
+  lastName?: string;
   phone: string;
 }
 
@@ -118,8 +120,8 @@ export async function POST(request: any) {
       try {
         console.log(`📱 Procesando contacto: ${contact.name} (${contact.phone})`);
         
-        // Personalizar mensaje con el nombre del contacto
-        const personalizedMessage = message.replace('{nombre}', contact.name);
+        // Personalizar mensaje con todos los datos del contacto
+        const personalizedMessage = personalizeMessage(message, contact);
         
         // Enviar mensaje (solo texto)
         const success = await whatsappService.sendMessage(

@@ -60,8 +60,9 @@ export async function POST(request: Request) {
 
                     let finalMessage = message;
 
-                    // Si se usan plantillas, personalizar mensaje según grupo
+                    // Personalizar mensaje con los datos del contacto
                     if (useTemplates && contact.group) {
+                        // Si se usan plantillas, personalizar mensaje según grupo
                         const template = getTemplateByGroup(contact.group);
                         if (template) {
                             finalMessage = personalizeMessage(template.content, {
@@ -71,6 +72,14 @@ export async function POST(request: Request) {
                                 gestor: contact.gestor || ''
                             });
                         }
+                    } else {
+                        // Si no se usan plantillas, personalizar el mensaje directamente
+                        finalMessage = personalizeMessage(message, {
+                            nombre: contact.name || '',
+                            apellido: contact.lastName || '',
+                            grupo: contact.group || '',
+                            gestor: contact.gestor || ''
+                        });
                     }
 
                     // Verificar si el número existe en WhatsApp antes del envío
