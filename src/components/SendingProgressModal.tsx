@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface SendingProgress {
   contactId: string;
@@ -8,6 +8,26 @@ interface SendingProgress {
   error?: string;
   duration?: number;
   timestamp?: Date;
+}
+
+interface RealTimeProgress {
+  sessionId: string;
+  totalContacts: number;
+  currentIndex: number;
+  successCount: number;
+  errorCount: number;
+  invalidNumbersCount: number;
+  isComplete: boolean;
+  startTime: string;
+  lastUpdate: string;
+  results: Array<{
+    contactId: string;
+    contactName: string;
+    status: 'pending' | 'sending' | 'success' | 'error' | 'invalid_number';
+    phone: string;
+    error?: string;
+    timestamp: string;
+  }>;
 }
 
 interface SendingProgressModalProps {
@@ -22,6 +42,7 @@ interface SendingProgressModalProps {
     invalidNumbersCount: number;
     invalidNumbers: string[];
   } | null;
+  sessionId?: string;
 }
 
 export default function SendingProgressModal({
@@ -30,20 +51,75 @@ export default function SendingProgressModal({
   currentIndex,
   totalContacts,
   onClose,
-  results
+  results,
+  sessionId
 }: SendingProgressModalProps) {
+  const [realTimeProgress, setRealTimeProgress] = useState<RealTimeProgress | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  // Polling para obtener progreso en tiempo real
+  useEffect(() => {
+    if (!isOpen || !sessionId) return;
+
+    console.log(`🔍 [Modal] Iniciando polling para sessionId: ${sessionId}`);
+
+    const interval = setInterval(async () => {
+      try {
+        console.log(`🔍 [Modal] Consultando progreso para: ${sessionId}`);
+        const response = await fetch(`/api/whatsapp/sending-progress?sessionId=${sessionId}`);
+        console.log(`🔍 [Modal] Respuesta del servidor:`, response.status, response.ok);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`🔍 [Modal] Datos recibidos:`, data);
+          
+          if (data.success) {
+            console.log(`✅ [Modal] Progreso actualizado:`, {
+              currentIndex: data.data.currentIndex,
+              totalContacts: data.data.totalContacts,
+              resultsCount: data.data.results.length
+            });
+            setRealTimeProgress(data.data);
+            setLastUpdate(new Date());
+          } else {
+            console.log(`❌ [Modal] Error en respuesta:`, data.error);
+          }
+        } else {
+          console.log(`❌ [Modal] Error HTTP:`, response.status);
+        }
+      } catch (error) {
+        console.log('❌ [Modal] Error obteniendo progreso en tiempo real:', error);
+      }
+    }, 1000); // Actualizar cada segundo
+
+    return () => {
+      console.log(`🔍 [Modal] Deteniendo polling para: ${sessionId}`);
+      clearInterval(interval);
+    };
+  }, [isOpen, sessionId]);
+
   if (!isOpen) return null;
 
-  const successCount = progress.filter(p => p.status === 'success').length;
-  const errorCount = progress.filter(p => p.status === 'error').length;
-  const invalidCount = progress.filter(p => p.status === 'invalid_number').length;
-  const completedCount = successCount + errorCount + invalidCount;
+  // Usar progreso en tiempo real si está disponible, sino usar datos locales
+  const currentProgress = realTimeProgress || {
+    currentIndex: currentIndex,
+    successCount: progress.filter(p => p.status === 'success').length,
+    errorCount: progress.filter(p => p.status === 'error').length,
+    invalidNumbersCount: progress.filter(p => p.status === 'invalid_number').length,
+    isComplete: false,
+    results: []
+  };
+
+  const completedCount = currentProgress.currentIndex;
   const progressPercentage = totalContacts > 0 ? (completedCount / totalContacts) * 100 : 0;
 
   // Usar resultados del servidor si están disponibles
-  const finalSuccessCount = results?.successCount ?? successCount;
-  const finalErrorCount = results?.errorCount ?? errorCount;
-  const finalInvalidCount = results?.invalidNumbersCount ?? invalidCount;
+  const finalSuccessCount = results?.successCount ?? currentProgress.successCount;
+  const finalErrorCount = results?.errorCount ?? currentProgress.errorCount;
+  const finalInvalidCount = results?.invalidNumbersCount ?? currentProgress.invalidNumbersCount;
+
+  // Crear lista de contactos para mostrar
+  const contactsToShow = realTimeProgress?.results || progress;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -62,6 +138,11 @@ export default function SendingProgressModal({
               <h2 className="text-2xl font-bold mb-2">📤 Enviando Mensajes</h2>
               <p className="text-blue-100">
                 Progreso: {completedCount} de {totalContacts} contactos
+                {realTimeProgress && (
+                  <span className="ml-2 text-xs">
+                    (Actualizado: {lastUpdate.toLocaleTimeString()})
+                  </span>
+                )}
               </p>
             </div>
             <button
@@ -93,120 +174,120 @@ export default function SendingProgressModal({
 
         {/* Content */}
         <div className="p-6 max-h-96 overflow-y-auto">
-          {progress.length > 0 ? (
+          {contactsToShow.length > 0 ? (
             <div className="space-y-3">
-              {progress.map((item, index) => (
-                <div
-                  key={item.contactId}
-                  className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                    index === currentIndex - 1 && item.status === 'sending'
-                      ? 'border-blue-400 bg-blue-50 shadow-lg scale-105'
-                      : item.status === 'success'
-                      ? 'border-green-200 bg-green-50'
-                      : item.status === 'error'
-                      ? 'border-red-200 bg-red-50'
-                      : item.status === 'invalid_number'
-                      ? 'border-orange-200 bg-orange-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {/* Status Icon */}
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        item.status === 'sending'
-                          ? 'bg-blue-500 animate-pulse'
-                          : item.status === 'success'
-                          ? 'bg-green-500'
-                          : item.status === 'error'
-                          ? 'bg-red-500'
-                          : item.status === 'invalid_number'
-                          ? 'bg-orange-500'
-                          : 'bg-gray-400'
-                      }`}>
-                        <span className="text-white text-lg">
-                          {item.status === 'sending' ? '📤' : 
-                           item.status === 'success' ? '✅' : 
-                           item.status === 'error' ? '❌' : 
-                           item.status === 'invalid_number' ? '⚠️' : '⏳'}
-                        </span>
-                      </div>
-
-                      {/* Contact Info */}
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {item.contactName}
-                        </p>
-                        <p className="text-sm text-gray-600 font-mono">
-                          {item.phone}
-                        </p>
-                        {item.timestamp && (
-                          <p className="text-xs text-gray-500">
-                            {item.timestamp.toLocaleTimeString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Status and Duration */}
-                    <div className="text-right">
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        item.status === 'sending'
-                          ? 'bg-blue-100 text-blue-800'
-                          : item.status === 'success'
-                          ? 'bg-green-100 text-green-800'
-                          : item.status === 'error'
-                          ? 'bg-red-100 text-red-800'
-                          : item.status === 'invalid_number'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.status === 'sending' ? 'Enviando...' :
-                         item.status === 'success' ? 'Enviado' :
-                         item.status === 'error' ? 'Error' :
-                         item.status === 'invalid_number' ? 'Sin WhatsApp' : 'Pendiente'}
-                      </div>
-                      
-                      {item.duration && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {item.duration}ms
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Error Message */}
-                  {item.error && (
-                    <div className={`mt-3 p-3 rounded-lg border ${
-                      item.status === 'invalid_number' 
-                        ? 'bg-orange-100 border-orange-200' 
-                        : 'bg-red-100 border-red-200'
-                    }`}>
-                      <p className={`text-sm ${
-                        item.status === 'invalid_number' ? 'text-orange-800' : 'text-red-800'
-                      }`}>
-                        <span className="font-medium">
-                          {item.status === 'invalid_number' ? 'Número no válido:' : 'Error:'}
-                        </span> {item.error}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Sending Animation */}
-                  {item.status === 'sending' && (
-                    <div className="mt-3">
-                      <div className="flex items-center space-x-2 text-blue-600">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              {contactsToShow.map((item, index) => {
+                // Obtener nombre del contacto desde los datos del servidor
+                const contactName = realTimeProgress?.results?.[index]?.contactName || item.contactName || `Contacto ${index + 1}`;
+                const isCurrentlyProcessing = index === completedCount - 1 && !currentProgress.isComplete;
+                
+                return (
+                  <div
+                    key={item.contactId}
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                      isCurrentlyProcessing
+                        ? 'border-blue-400 bg-blue-50 shadow-lg scale-105'
+                        : item.status === 'success'
+                        ? 'border-green-200 bg-green-50'
+                        : item.status === 'error'
+                        ? 'border-red-200 bg-red-50'
+                        : item.status === 'invalid_number'
+                        ? 'border-orange-200 bg-orange-50'
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* Status Icon */}
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          isCurrentlyProcessing
+                            ? 'bg-blue-500 animate-pulse'
+                            : item.status === 'success'
+                            ? 'bg-green-500'
+                            : item.status === 'error'
+                            ? 'bg-red-500'
+                            : item.status === 'invalid_number'
+                            ? 'bg-orange-500'
+                            : 'bg-gray-400'
+                        }`}>
+                          <span className="text-white text-lg">
+                            {isCurrentlyProcessing ? '📤' : 
+                             item.status === 'success' ? '✅' : 
+                             item.status === 'error' ? '❌' : 
+                             item.status === 'invalid_number' ? '⚠️' : '⏳'}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium">Enviando mensaje...</span>
+
+                        {/* Contact Info */}
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {contactName}
+                          </p>
+                          <p className="text-sm text-gray-600 font-mono">
+                            {item.phone}
+                          </p>
+                          {item.timestamp && (
+                            <p className="text-xs text-gray-500">
+                              {new Date(item.timestamp).toLocaleTimeString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status and Duration */}
+                      <div className="text-right">
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          isCurrentlyProcessing
+                            ? 'bg-blue-100 text-blue-800'
+                            : item.status === 'success'
+                            ? 'bg-green-100 text-green-800'
+                            : item.status === 'error'
+                            ? 'bg-red-100 text-red-800'
+                            : item.status === 'invalid_number'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {isCurrentlyProcessing ? 'Enviando...' :
+                           item.status === 'success' ? 'Enviado' :
+                           item.status === 'error' ? 'Error' :
+                           item.status === 'invalid_number' ? 'Sin WhatsApp' : 'Pendiente'}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Error Message */}
+                    {item.error && (
+                      <div className={`mt-3 p-3 rounded-lg border ${
+                        item.status === 'invalid_number' 
+                          ? 'bg-orange-100 border-orange-200' 
+                          : 'bg-red-100 border-red-200'
+                      }`}>
+                        <p className={`text-sm ${
+                          item.status === 'invalid_number' ? 'text-orange-800' : 'text-red-800'
+                        }`}>
+                          <span className="font-medium">
+                            {item.status === 'invalid_number' ? 'Número no válido:' : 'Error:'}
+                          </span> {item.error}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Sending Animation */}
+                    {isCurrentlyProcessing && (
+                      <div className="mt-3">
+                        <div className="flex items-center space-x-2 text-blue-600">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                          <span className="text-sm font-medium">Enviando mensaje...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -224,13 +305,13 @@ export default function SendingProgressModal({
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <span className="font-medium">Estado actual:</span>
-              {currentIndex <= totalContacts ? (
-                <span className="ml-2 text-blue-600">
-                  Procesando contacto {currentIndex} de {totalContacts}
-                </span>
-              ) : (
+              {currentProgress.isComplete ? (
                 <span className="ml-2 text-green-600">
                   ✅ Envío completado
+                </span>
+              ) : (
+                <span className="ml-2 text-blue-600">
+                  Procesando contacto {completedCount} de {totalContacts}
                 </span>
               )}
             </div>

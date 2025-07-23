@@ -613,7 +613,13 @@ export class WhatsAppService {
     try {
       if (!this.client) {
         console.log(`❌ [${this.sessionId}] No hay cliente disponible para verificar número`);
-        return false;
+        throw new Error('No hay cliente disponible para verificar número');
+      }
+
+      // Verificar que el cliente esté conectado
+      if (!this.client.info?.wid?.user) {
+        console.log(`❌ [${this.sessionId}] Cliente no está conectado para verificar número`);
+        throw new Error('Cliente no está conectado para verificar número');
       }
 
       const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
@@ -623,7 +629,7 @@ export class WhatsAppService {
         const chat = await this.client.getChatById(formattedPhone);
         
         // Verificar si el chat existe y tiene información válida
-        const isValid = chat && chat.id && chat.id.user;
+        const isValid = Boolean(chat && chat.id && chat.id.user);
         
         console.log(`🔍 [${this.sessionId}] Verificación de número ${phone}: ${isValid ? 'VÁLIDO' : 'NO VÁLIDO'}`);
         

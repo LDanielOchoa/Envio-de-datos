@@ -915,14 +915,15 @@ export default function Home() {
             </div>
 
             {/* Sending Progress Modal */}
-            <SendingProgressModal
-                isOpen={showSendingModal}
-                progress={sendingProgress}
-                currentIndex={currentSendingIndex}
-                totalContacts={filteredContacts.length}
-                onClose={closeSendingModal}
-                results={results}
-            />
+                    <SendingProgressModal
+          isOpen={showSendingModal}
+          progress={sendingProgress}
+          currentIndex={currentSendingIndex}
+          totalContacts={filteredContacts.length}
+          onClose={closeSendingModal}
+          results={results}
+          sessionId={authState.user?.whatsappSessionId}
+        />
         </div>
     );
 }
