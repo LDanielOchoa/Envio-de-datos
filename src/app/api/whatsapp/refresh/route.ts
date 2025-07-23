@@ -4,17 +4,20 @@ import { WhatsAppService } from '../../../../lib/whatsapp-service';
 // Marcar la ruta como dinámica para evitar la compilación estática
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    console.log('🔄 API: Refrescando cliente WhatsApp...');
+    // Obtener sessionId del header
+    const sessionId = request.headers.get('X-Session-Id') || 'default';
     
-    const whatsappService = WhatsAppService.getInstance();
+    console.log(`🔄 API: Refrescando cliente WhatsApp para sesión ${sessionId}...`);
+    
+    const whatsappService = WhatsAppService.getInstance(sessionId);
     await whatsappService.refreshClient();
     
     // Obtener el estado después del refresh
     const status = whatsappService.getStatus();
     
-    console.log('✅ API: Cliente refrescado');
+    console.log(`✅ API: Cliente refrescado para sesión ${sessionId}`);
     
     return NextResponse.json({
       success: true,

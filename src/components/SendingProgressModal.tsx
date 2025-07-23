@@ -4,7 +4,7 @@ interface SendingProgress {
   contactId: string;
   contactName: string;
   phone: string;
-  status: 'pending' | 'sending' | 'success' | 'error';
+  status: 'pending' | 'sending' | 'success' | 'error' | 'invalid_number';
   error?: string;
   duration?: number;
   timestamp?: Date;
@@ -16,6 +16,12 @@ interface SendingProgressModalProps {
   currentIndex: number;
   totalContacts: number;
   onClose: () => void;
+  results?: {
+    successCount: number;
+    errorCount: number;
+    invalidNumbersCount: number;
+    invalidNumbers: string[];
+  } | null;
 }
 
 export default function SendingProgressModal({
@@ -23,14 +29,21 @@ export default function SendingProgressModal({
   progress,
   currentIndex,
   totalContacts,
-  onClose
+  onClose,
+  results
 }: SendingProgressModalProps) {
   if (!isOpen) return null;
 
   const successCount = progress.filter(p => p.status === 'success').length;
   const errorCount = progress.filter(p => p.status === 'error').length;
-  const completedCount = successCount + errorCount;
+  const invalidCount = progress.filter(p => p.status === 'invalid_number').length;
+  const completedCount = successCount + errorCount + invalidCount;
   const progressPercentage = totalContacts > 0 ? (completedCount / totalContacts) * 100 : 0;
+
+  // Usar resultados del servidor si están disponibles
+  const finalSuccessCount = results?.successCount ?? successCount;
+  const finalErrorCount = results?.errorCount ?? errorCount;
+  const finalInvalidCount = results?.invalidNumbersCount ?? invalidCount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -66,7 +79,7 @@ export default function SendingProgressModal({
                 {Math.round(progressPercentage)}% completado
               </span>
               <span className="text-sm text-blue-100">
-                ✅ {successCount} | ❌ {errorCount}
+                ✅ {finalSuccessCount} | ❌ {finalErrorCount} | ⚠️ {finalInvalidCount}
               </span>
             </div>
             <div className="w-full bg-blue-800 bg-opacity-30 rounded-full h-3">
@@ -92,6 +105,8 @@ export default function SendingProgressModal({
                       ? 'border-green-200 bg-green-50'
                       : item.status === 'error'
                       ? 'border-red-200 bg-red-50'
+                      : item.status === 'invalid_number'
+                      ? 'border-orange-200 bg-orange-50'
                       : 'border-gray-200 bg-gray-50'
                   }`}
                 >
@@ -105,12 +120,15 @@ export default function SendingProgressModal({
                           ? 'bg-green-500'
                           : item.status === 'error'
                           ? 'bg-red-500'
+                          : item.status === 'invalid_number'
+                          ? 'bg-orange-500'
                           : 'bg-gray-400'
                       }`}>
                         <span className="text-white text-lg">
                           {item.status === 'sending' ? '📤' : 
                            item.status === 'success' ? '✅' : 
-                           item.status === 'error' ? '❌' : '⏳'}
+                           item.status === 'error' ? '❌' : 
+                           item.status === 'invalid_number' ? '⚠️' : '⏳'}
                         </span>
                       </div>
 
@@ -139,11 +157,14 @@ export default function SendingProgressModal({
                           ? 'bg-green-100 text-green-800'
                           : item.status === 'error'
                           ? 'bg-red-100 text-red-800'
+                          : item.status === 'invalid_number'
+                          ? 'bg-orange-100 text-orange-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
                         {item.status === 'sending' ? 'Enviando...' :
                          item.status === 'success' ? 'Enviado' :
-                         item.status === 'error' ? 'Error' : 'Pendiente'}
+                         item.status === 'error' ? 'Error' :
+                         item.status === 'invalid_number' ? 'Sin WhatsApp' : 'Pendiente'}
                       </div>
                       
                       {item.duration && (
@@ -156,9 +177,17 @@ export default function SendingProgressModal({
 
                   {/* Error Message */}
                   {item.error && (
-                    <div className="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
-                      <p className="text-sm text-red-800">
-                        <span className="font-medium">Error:</span> {item.error}
+                    <div className={`mt-3 p-3 rounded-lg border ${
+                      item.status === 'invalid_number' 
+                        ? 'bg-orange-100 border-orange-200' 
+                        : 'bg-red-100 border-red-200'
+                    }`}>
+                      <p className={`text-sm ${
+                        item.status === 'invalid_number' ? 'text-orange-800' : 'text-red-800'
+                      }`}>
+                        <span className="font-medium">
+                          {item.status === 'invalid_number' ? 'Número no válido:' : 'Error:'}
+                        </span> {item.error}
                       </p>
                     </div>
                   )}
@@ -209,11 +238,15 @@ export default function SendingProgressModal({
             <div className="flex items-center space-x-4 text-sm">
               <div className="flex items-center text-green-600">
                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                <span>{successCount} exitosos</span>
+                <span>{finalSuccessCount} exitosos</span>
               </div>
               <div className="flex items-center text-red-600">
                 <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                <span>{errorCount} fallidos</span>
+                <span>{finalErrorCount} fallidos</span>
+              </div>
+              <div className="flex items-center text-orange-600">
+                <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                <span>{finalInvalidCount} sin WhatsApp</span>
               </div>
             </div>
           </div>

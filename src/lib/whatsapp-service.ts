@@ -596,6 +596,32 @@ export class WhatsAppService {
     }
   }
 
+  // Método para verificar si un número existe en WhatsApp
+  async isNumberValid(phone: string): Promise<boolean> {
+    try {
+      if (!this.client) {
+        console.log(`❌ [${this.sessionId}] No hay cliente disponible para verificar número`);
+        return false;
+      }
+
+      const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
+      
+      try {
+        // Intentar obtener información del chat para verificar si existe
+        const chat = await this.client.getChatById(formattedPhone);
+        const isValid = !!chat;
+        console.log(`🔍 [${this.sessionId}] Verificación de número ${phone}: ${isValid ? 'VÁLIDO' : 'NO VÁLIDO'}`);
+        return isValid;
+      } catch (chatError) {
+        console.log(`⚠️ [${this.sessionId}] No se pudo verificar número ${phone}:`, chatError);
+        return false;
+      }
+    } catch (error) {
+      console.error(`❌ [${this.sessionId}] Error verificando número ${phone}:`, error);
+      return false;
+    }
+  }
+
   // Método para obtener QR sin tocar estado
   getQROnly(): string {
     const qr = this.qrCode || this.persistentQR;

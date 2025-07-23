@@ -4,16 +4,19 @@ import { WhatsAppService } from '../../../../lib/whatsapp-service';
 // Marcar la ruta como dinámica para evitar la compilación estática
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    console.log('🔍 Forzando verificación de conexión...');
+    // Obtener sessionId del header
+    const sessionId = request.headers.get('X-Session-Id') || 'default';
     
-    const whatsappService = WhatsAppService.getInstance();
+    console.log(`🔍 Forzando verificación de conexión para sesión ${sessionId}...`);
+    
+    const whatsappService = WhatsAppService.getInstance(sessionId);
     
     // Usar el método específico para verificar conexión
     const status = await whatsappService.forceConnectionCheck();
     
-    console.log('📊 Estado después de verificación:', status);
+    console.log(`📊 Estado después de verificación para sesión ${sessionId}:`, status);
     
     return NextResponse.json({
       success: true,
@@ -25,7 +28,8 @@ export async function POST() {
     
     // Aún así, intentar obtener el estado actual
     try {
-      const whatsappService = WhatsAppService.getInstance();
+      const sessionId = request.headers.get('X-Session-Id') || 'default';
+      const whatsappService = WhatsAppService.getInstance(sessionId);
       const status = whatsappService.getStatus();
       
       return NextResponse.json({

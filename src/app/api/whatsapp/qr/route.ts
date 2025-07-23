@@ -32,20 +32,23 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('🚀 API: Generando código QR DEFINITIVO...');
+    // Obtener sessionId del header
+    const sessionId = request.headers.get('X-Session-Id') || 'default';
     
-    const whatsappService = WhatsAppService.getInstance();
+    console.log(`🚀 API: Generando código QR DEFINITIVO para sesión ${sessionId}...`);
+    
+    const whatsappService = WhatsAppService.getInstance(sessionId);
     
     try {
       // Usar el método DEFINITIVO que retorna el QR directamente
       const qrCode = await whatsappService.forceQRGeneration();
       
-      console.log('🎉 API: QR recibido del servicio, longitud:', qrCode.length);
+      console.log(`🎉 API: QR recibido del servicio para sesión ${sessionId}, longitud:`, qrCode.length);
       
       // Obtener estado completo
       const status = whatsappService.getStatus();
       
-      console.log('✅ API: Estado final confirmado:', {
+      console.log(`✅ API: Estado final confirmado para sesión ${sessionId}:`, {
         qrLength: status.qrCode ? status.qrCode.length : 0,
         isConnected: status.isConnected,
         hasQR: !!status.qrCode
@@ -65,7 +68,7 @@ export async function POST(request: Request) {
     } catch (qrError) {
       // Si el error es que ya está conectado, es buena noticia
       if (qrError instanceof Error && qrError.message.includes('ya está conectado')) {
-        console.log('✅ API: WhatsApp ya conectado, no necesita QR');
+        console.log(`✅ API: WhatsApp ya conectado para sesión ${sessionId}, no necesita QR`);
         
         const status = whatsappService.getStatus();
         return NextResponse.json({

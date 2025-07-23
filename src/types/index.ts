@@ -31,7 +31,6 @@ export type AuthState = {
   isLoading: boolean;
 };
 
-
 export enum SheetType {
   UNITARIO = 'unitario',
   GRUPOS = 'grupos',
@@ -40,32 +39,21 @@ export enum SheetType {
 
 export interface SendResult {
   contactId: string;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'invalid_number';
   error?: string;
+  phone?: string;
 }
 
 export interface SendResults {
   successCount: number;
   errorCount: number;
+  invalidNumbersCount: number;
+  invalidNumbers: string[];
   results: SendResult[];
   useTemplates?: boolean;
 }
 
 export type TabType = 'whatsapp' | 'sheets' | 'messages' | 'settings' | 'logs';
-
-
-export interface SendResult {
-  contactId: string;
-  status: 'success' | 'error';
-  error?: string;
-}
-
-export interface SendResults {
-  successCount: number;
-  errorCount: number;
-  results: SendResult[];
-  useTemplates?: boolean;
-}
 
 export interface MessageTemplate {
   id: string;

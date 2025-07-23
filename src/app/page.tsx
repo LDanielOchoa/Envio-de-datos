@@ -14,7 +14,7 @@ interface SendingProgress {
     contactId: string;
     contactName: string;
     phone: string;
-    status: 'pending' | 'sending' | 'success' | 'error';
+    status: 'pending' | 'sending' | 'success' | 'error' | 'invalid_number';
     error?: string;
     duration?: number;
     timestamp?: Date;
@@ -124,9 +124,9 @@ export default function Home() {
             const response = await fetch('/api/whatsapp/check-connection', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
+                    'Content-Type': 'application/json',
+                    'X-Session-Id': authState.user.whatsappSessionId
+                }
             });
 
             if (response.status === 429) {
@@ -163,9 +163,9 @@ export default function Home() {
             const response = await fetch('/api/whatsapp/reset', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
+                    'Content-Type': 'application/json',
+                    'X-Session-Id': authState.user.whatsappSessionId
+                }
             });
 
             const data = await response.json();
@@ -197,9 +197,9 @@ export default function Home() {
             const response = await fetch('/api/whatsapp/qr', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
+                    'Content-Type': 'application/json',
+                    'X-Session-Id': authState.user.whatsappSessionId
+                }
             });
 
             if (response.status === 429) {
@@ -238,9 +238,9 @@ export default function Home() {
             const response = await fetch('/api/whatsapp/refresh', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
+                    'Content-Type': 'application/json',
+                    'X-Session-Id': authState.user.whatsappSessionId
+                }
             });
             const data = await response.json();
             if (data.success) {
@@ -406,7 +406,7 @@ export default function Home() {
         setShowSendingModal(true);
         setSendingProgress([]);
         setCurrentSendingIndex(0);
-        addLog(`📤 Enviando mensajes a ${filteredContacts.length} contactos...`);
+        addLog(`📤 Enviando mensajes optimizado a ${filteredContacts.length} contactos...`);
         
         // Inicializar progreso
         const initialProgress: SendingProgress[] = filteredContacts.map(contact => ({
@@ -418,95 +418,66 @@ export default function Home() {
         setSendingProgress(initialProgress);
 
         try {
-            // Enviar mensajes uno por uno para mostrar progreso
-            const results: any[] = [];
-            let successCount = 0;
-            let errorCount = 0;
+            // Enviar todos los mensajes en una sola llamada optimizada
+            const formData = new FormData();
+            formData.append('contacts', JSON.stringify(filteredContacts));
+            formData.append('message', message);
+            formData.append('useTemplates', 'false'); // Por ahora sin plantillas
 
-            for (let i = 0; i < filteredContacts.length; i++) {
-                const contact = filteredContacts[i];
-                setCurrentSendingIndex(i + 1);
-                
-                // Actualizar estado a "enviando"
-                setSendingProgress(prev => prev.map((item, index) => 
-                    index === i 
-                        ? { ...item, status: 'sending', timestamp: new Date() }
-                        : item
-                ));
-
-                const startTime = Date.now();
-                
-                try {
-                    // Personalizar el mensaje para este contacto específico
-                    const personalizedMessage = personalizeMessage(message, contact);
-                    
-                    const formData = new FormData();
-                    formData.append('contacts', JSON.stringify([contact]));
-                    formData.append('message', personalizedMessage); // Usar el mensaje personalizado
-
-                    const response = await fetch('/api/whatsapp/send-reliable', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Session-Id': authState.user.whatsappSessionId
-                        }
-                    });
-
-                    const data = await response.json();
-                    const duration = Date.now() - startTime;
-
-                    if (data.success && data.data.successCount > 0) {
-                        // Éxito
-                        setSendingProgress(prev => prev.map((item, index) => 
-                            index === i 
-                                ? { ...item, status: 'success', duration }
-                                : item
-                        ));
-                        successCount++;
-                        results.push({ contactId: contact.id, status: 'success' });
-                        addLog(`✅ Mensaje enviado a ${contact.name} (${contact.phone}) - ${duration}ms`);
-                    } else {
-                        // Error
-                        const errorMsg = data.error || 'Error desconocido';
-                        setSendingProgress(prev => prev.map((item, index) => 
-                            index === i 
-                                ? { ...item, status: 'error', duration, error: errorMsg }
-                                : item
-                        ));
-                        errorCount++;
-                        results.push({ contactId: contact.id, status: 'error', error: errorMsg });
-                        addLog(`❌ Error enviando a ${contact.name}: ${errorMsg}`);
-                    }
-                } catch (error) {
-                    const duration = Date.now() - startTime;
-                    const errorMsg = 'Error de conexión';
-                    setSendingProgress(prev => prev.map((item, index) => 
-                        index === i 
-                            ? { ...item, status: 'error', duration, error: errorMsg }
-                            : item
-                    ));
-                    errorCount++;
-                    results.push({ contactId: contact.id, status: 'error', error: errorMsg });
-                    addLog(`❌ Error de conexión enviando a ${contact.name}`);
+            const response = await fetch('/api/whatsapp/send-reliable', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Session-Id': authState.user.whatsappSessionId
                 }
-
-                // Pequeña pausa entre envíos
-                if (i < filteredContacts.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-            }
-
-            // Actualizar resultados finales
-            setResults({
-                successCount,
-                errorCount,
-                results
             });
 
-            addLog(`✅ Envío completado: ${successCount} exitosos, ${errorCount} fallidos`);
+            const data = await response.json();
+
+            if (data.success) {
+                const { results: serverResults, successCount, errorCount, invalidNumbersCount, invalidNumbers } = data.data;
+                
+                // Actualizar progreso basado en los resultados del servidor
+                const updatedProgress = initialProgress.map((item, index) => {
+                    const result = serverResults[index];
+                    if (result) {
+                        return {
+                            ...item,
+                            status: result.status,
+                            error: result.error,
+                            duration: 0, // El servidor no proporciona duración individual
+                            timestamp: new Date()
+                        };
+                    }
+                    return item;
+                });
+                
+                setSendingProgress(updatedProgress);
+                
+                // Actualizar resultados finales
+                setResults({
+                    successCount,
+                    errorCount,
+                    invalidNumbersCount,
+                    invalidNumbers,
+                    results: serverResults
+                });
+
+                addLog(`✅ Envío optimizado completado:`);
+                addLog(`   ✅ ${successCount} exitosos`);
+                addLog(`   ❌ ${errorCount} fallidos`);
+                addLog(`   ⚠️ ${invalidNumbersCount} sin WhatsApp`);
+                
+                if (invalidNumbers && invalidNumbers.length > 0) {
+                    addLog(`📋 Números sin WhatsApp: ${invalidNumbers.join(', ')}`);
+                }
+            } else {
+                addLog(`❌ Error en el servidor: ${data.error}`);
+            }
 
         } catch (error) {
             addLog('❌ Error al enviar mensajes');
+            console.error('Error:', error);
         } finally {
             setLoading(false);
         }
@@ -942,6 +913,7 @@ export default function Home() {
                 currentIndex={currentSendingIndex}
                 totalContacts={filteredContacts.length}
                 onClose={closeSendingModal}
+                results={results}
             />
         </div>
     );

@@ -33,20 +33,25 @@ export async function GET(request: NextRequest) {
 
     // Obtener parámetros de forma segura
     const forceQR = request.nextUrl.searchParams.get('forceQR') === 'true';
-    const sessionId = request.nextUrl.searchParams.get('sessionId') || 'default';
+    // Priorizar sessionId del header, luego del query parameter
+    const sessionId = request.headers.get('X-Session-Id') || 
+                     request.nextUrl.searchParams.get('sessionId') || 
+                     'default';
+    
+    console.log(`📱 OBTENIENDO ESTADO para sesión ${sessionId}...`);
     
     const whatsappService = WhatsAppService.getInstance(sessionId);
     
     if (forceQR) {
-      console.log('🔄 Forzando generación de QR...');
+      console.log(`🔄 Forzando generación de QR para sesión ${sessionId}...`);
       await whatsappService.forceQRGeneration();
     } else {
-      console.log('📱 OBTENIENDO ESTADO SIN TOCAR QR...');
+      console.log(`📱 OBTENIENDO ESTADO SIN TOCAR QR para sesión ${sessionId}...`);
       // NO llamar refreshStatus - solo obtener estado actual
     }
     
     const status = whatsappService.getStatus();
-    console.log('📊 Estado PURO retornado:', {
+    console.log(`📊 Estado PURO retornado para sesión ${sessionId}:`, {
       qrLength: status.qrCode?.length || 0,
       isConnected: status.isConnected
     });
@@ -60,7 +65,9 @@ export async function GET(request: NextRequest) {
     
     // Aún así, intentar obtener el estado actual
     try {
-      const sessionId = request.nextUrl.searchParams.get('sessionId') || 'default';
+      const sessionId = request.headers.get('X-Session-Id') || 
+                       request.nextUrl.searchParams.get('sessionId') || 
+                       'default';
       const whatsappService = WhatsAppService.getInstance(sessionId);
       const status = whatsappService.getStatus();
       
