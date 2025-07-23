@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
 
-// Simple rate limiter para QR
+// Marcar la ruta como dinámica para evitar la compilación estática
+export const dynamic = 'force-dynamic';
+
+// Rate limiter específico para QR
 const qrLastCalls = new Map<string, number>();
 const QR_RATE_LIMIT_MS = 10000; // 10 segundos entre llamadas de QR
 

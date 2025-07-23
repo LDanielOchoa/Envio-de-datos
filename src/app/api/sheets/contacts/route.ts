@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { read, utils } from 'xlsx';
 import { Contact, SheetType } from '../../../../types';
 
+// Marcar la ruta como dinámica para evitar la compilación estática
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         console.log('🔍 Iniciando procesamiento de archivo Excel...');

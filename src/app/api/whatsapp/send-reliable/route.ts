@@ -3,6 +3,9 @@ import { Contact } from '../../../../types';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
 import { getTemplateByGroup, personalizeMessage } from '../../../../lib/message-templates';
 
+// Marcar la ruta como dinámica para evitar la compilación estática
+export const dynamic = 'force-dynamic';
+
 // Número de mensajes a enviar en paralelo (aumentado para mayor velocidad)
 const BATCH_SIZE = 10;
 // Tiempo de espera entre lotes (reducido para mayor velocidad)

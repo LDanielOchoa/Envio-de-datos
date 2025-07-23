@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
 
+// Marcar la ruta como dinámica para evitar la compilación estática
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         const formData = await request.formData();
