@@ -16,6 +16,21 @@ export type WhatsAppStatus = {
   lastSeen: Date | null;
 };
 
+// Tipos para autenticación
+export type User = {
+  id: string;
+  username: string;
+  name: string;
+  role: 'admin' | 'user';
+  whatsappSessionId: string;
+};
+
+export type AuthState = {
+  isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
+};
+
 
 export enum SheetType {
   UNITARIO = 'unitario',

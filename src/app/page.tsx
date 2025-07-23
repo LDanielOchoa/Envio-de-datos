@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Contact, WhatsAppStatus, SendResults, TabType } from '../types';
+import { Contact, WhatsAppStatus, SendResults, TabType, User, AuthState } from '../types';
 import WhatsAppSection from '../components/WhatsAppSection';
 import ContactsSection from '../components/ContactsSection';
 import MessagesSection from '../components/MessagesSection';
 import SendingProgressModal from '../components/SendingProgressModal';
+import LoginForm from '../components/LoginForm';
+import UserHeader from '../components/UserHeader';
 import { personalizeMessage } from '../lib/message-templates';
 
 interface SendingProgress {
@@ -19,6 +21,11 @@ interface SendingProgress {
 }
 
 export default function Home() {
+    const [authState, setAuthState] = useState<AuthState>({
+        isAuthenticated: false,
+        user: null,
+        isLoading: false
+    });
     const [activeTab, setActiveTab] = useState<TabType>('whatsapp');
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
@@ -31,6 +38,7 @@ export default function Home() {
     const [currentSendingIndex, setCurrentSendingIndex] = useState(0);
     const [results, setResults] = useState<SendResults | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [includePDF, setIncludePDF] = useState(false);
     const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus>({
         isConnected: false,
         qrCode: '',
@@ -43,13 +51,43 @@ export default function Home() {
         setFilteredContacts(contacts);
     }, [contacts]);
 
+    // Authentication Functions
+    const handleLogin = (user: User) => {
+        setAuthState({
+            isAuthenticated: true,
+            user,
+            isLoading: false
+        });
+        addLog(`🔐 Usuario ${user.name} autenticado exitosamente`);
+        addLog(`📱 Sesión WhatsApp: ${user.whatsappSessionId}`);
+    };
+
+    const handleLogout = () => {
+        setAuthState({
+            isAuthenticated: false,
+            user: null,
+            isLoading: false
+        });
+        setContacts([]);
+        setFilteredContacts([]);
+        setWhatsappStatus({
+            isConnected: false,
+            qrCode: '',
+            phoneNumber: '',
+            lastSeen: null
+        });
+        setResults(null);
+        setLogs([]);
+        addLog('🚪 Sesión cerrada exitosamente');
+    };
+
     // WhatsApp Functions
     const checkWhatsAppStatus = async () => {
-        if (isCheckingStatus) return;
+        if (isCheckingStatus || !authState.user) return;
 
         try {
             setIsCheckingStatus(true);
-            const response = await fetch('/api/whatsapp/status');
+            const response = await fetch(`/api/whatsapp/status?sessionId=${authState.user.whatsappSessionId}`);
 
             if (response.status === 429) {
                 addLog('⚠️ Muchas peticiones, esperando un momento...');
@@ -78,12 +116,18 @@ export default function Home() {
     };
 
     const forceRefreshStatus = async () => {
+        if (!authState.user) return;
+        
         try {
             addLog('🔍 Verificando conexión manualmente...');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             const response = await fetch('/api/whatsapp/check-connection', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
             });
 
             if (response.status === 429) {
@@ -111,14 +155,18 @@ export default function Home() {
     };
 
     const resetWhatsApp = async () => {
-        if (qrLoading) return;
+        if (qrLoading || !authState.user) return;
 
         try {
             setQrLoading(true);
             addLog('🔄 Reiniciando WhatsApp completamente...');
 
             const response = await fetch('/api/whatsapp/reset', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
             });
 
             const data = await response.json();
@@ -141,14 +189,18 @@ export default function Home() {
     };
 
     const generateNewQR = async () => {
-        if (qrLoading) return;
+        if (qrLoading || !authState.user) return;
 
         try {
             setQrLoading(true);
             addLog('🚀 Generando código QR...');
 
             const response = await fetch('/api/whatsapp/qr', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
             });
 
             if (response.status === 429) {
@@ -180,10 +232,16 @@ export default function Home() {
     };
 
     const refreshClient = async () => {
+        if (!authState.user) return;
+        
         addLog('🔄 Refrescando cliente WhatsApp...');
         try {
             const response = await fetch('/api/whatsapp/refresh', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sessionId: authState.user.whatsappSessionId })
             });
             const data = await response.json();
             if (data.success) {
@@ -340,6 +398,11 @@ export default function Home() {
             return;
         }
 
+        if (!authState.user) {
+            addLog('❌ Error: Usuario no autenticado');
+            return;
+        }
+
         setLoading(true);
         setShowSendingModal(true);
         setSendingProgress([]);
@@ -381,6 +444,7 @@ export default function Home() {
                     const formData = new FormData();
                     formData.append('contacts', JSON.stringify([contact]));
                     formData.append('message', personalizedMessage); // Usar el mensaje personalizado
+                    formData.append('includePDF', includePDF.toString());
                     
                     // if (selectedImage) { // Eliminado
                     //     formData.append('image', selectedImage); // Eliminado
@@ -389,6 +453,9 @@ export default function Home() {
                     const response = await fetch('/api/whatsapp/send-reliable', {
                         method: 'POST',
                         body: formData,
+                        headers: {
+                            'X-Session-Id': authState.user.whatsappSessionId
+                        }
                     });
 
                     const data = await response.json();
@@ -466,6 +533,11 @@ export default function Home() {
             return;
         }
 
+        if (!authState.user) {
+            addLog('❌ Error: Usuario no autenticado');
+            return;
+        }
+
         try {
             addLog('🧪 Enviando mensaje de prueba...');
             
@@ -486,10 +558,14 @@ export default function Home() {
             const formData = new FormData();
             formData.append('phone', testContact.phone);
             formData.append('message', personalizedMessage);
+            formData.append('includePDF', includePDF.toString());
 
             const response = await fetch('/api/whatsapp/test-send', {
                 method: 'POST',
                 body: formData,
+                headers: {
+                    'X-Session-Id': authState.user.whatsappSessionId
+                }
             });
 
             const data = await response.json();
@@ -522,35 +598,37 @@ export default function Home() {
 
     // Effects
     useEffect(() => {
-        checkWhatsAppStatus();
+        if (authState.isAuthenticated && authState.user) {
+            checkWhatsAppStatus();
 
-        const eventSource = new EventSource('/api/whatsapp/connection-events');
+            const eventSource = new EventSource(`/api/whatsapp/connection-events?sessionId=${authState.user.whatsappSessionId}`);
 
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'status_change' && data.data) {
-                    const wasConnected = whatsappStatus?.isConnected;
-                    setWhatsappStatus(data.data);
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'status_change' && data.data) {
+                        const wasConnected = whatsappStatus?.isConnected;
+                        setWhatsappStatus(data.data);
 
-                    if (data.data.isConnected && !wasConnected) {
-                        addLog('🎉 ¡WhatsApp CONECTADO automáticamente!');
-                        addLog(`📱 Conectado como: ${data.data.phoneNumber}`);
+                        if (data.data.isConnected && !wasConnected) {
+                            addLog('🎉 ¡WhatsApp CONECTADO automáticamente!');
+                            addLog(`📱 Conectado como: ${data.data.phoneNumber}`);
+                        }
                     }
+                } catch (error) {
+                    console.log('Error procesando evento SSE:', error);
                 }
-            } catch (error) {
-                console.log('Error procesando evento SSE:', error);
-            }
-        };
+            };
 
-        eventSource.onopen = () => {
-            addLog('🔌 Monitoreo en tiempo real activo');
-        };
+            eventSource.onopen = () => {
+                addLog('🔌 Monitoreo en tiempo real activo');
+            };
 
-        return () => {
-            eventSource.close();
-        };
-    }, []);
+            return () => {
+                eventSource.close();
+            };
+        }
+    }, [authState.isAuthenticated, authState.user]);
 
     const tabs = [
         { id: 'whatsapp', name: 'WhatsApp', icon: '📱', color: 'blue' },
@@ -560,9 +638,27 @@ export default function Home() {
         { id: 'logs', name: 'Logs', icon: '📋', color: 'orange' }
     ];
 
+    // Si no está autenticado, mostrar login
+    if (!authState.isAuthenticated) {
+        return (
+            <LoginForm 
+                onLogin={handleLogin}
+                isLoading={authState.isLoading}
+            />
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
             <div className="max-w-7xl mx-auto p-6">
+                {/* User Header */}
+                {authState.user && (
+                    <UserHeader 
+                        user={authState.user}
+                        onLogout={handleLogout}
+                    />
+                )}
+
                 {/* Header */}
                 <header className="text-center mb-12">
                     <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl mb-6 shadow-2xl">
@@ -694,6 +790,9 @@ export default function Home() {
                             results={results}
                             loading={loading}
                             whatsappStatus={whatsappStatus}
+                            authState={authState}
+                            includePDF={includePDF}
+                            setIncludePDF={setIncludePDF}
                             onTestSend={testSend}
                             onSendMessages={sendMessages}
                             onFilterByTemplate={handleFilterByTemplate}

@@ -1,141 +1,52 @@
 import { NextResponse } from 'next/server';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
 
-export async function POST() {
-  try {
-    console.log('🔍 DIAGNÓSTICO: Iniciando verificación completa...');
-    
-    const whatsappService = WhatsAppService.getInstance();
-    const status = whatsappService.getStatus();
-    
-    if (!status.isConnected) {
-      return NextResponse.json({
-        success: false,
-        error: 'WhatsApp no está conectado',
-        diagnostics: { status }
-      });
-    }
-    
-    // Intentar obtener información del cliente
-    const client = (whatsappService as any).client;
-    
-    if (!client) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cliente WhatsApp no disponible',
-        diagnostics: { status }
-      });
-    }
-    
-    const diagnostics: any = {
-      status,
-      clientInfo: {},
-      chats: {},
-      connectivity: {}
-    };
-    
-    // Verificar estado del cliente
+export async function GET(request: Request) {
     try {
-      const clientState = await client.getState();
-      diagnostics.clientInfo.state = clientState;
-      console.log('📱 Estado del cliente:', clientState);
-    } catch (error: any) {
-      diagnostics.clientInfo.stateError = error.message;
-    }
-    
-    // Verificar información del usuario
-    try {
-      if (client.info?.wid?.user) {
-        diagnostics.clientInfo.userPhone = client.info.wid.user;
-        diagnostics.clientInfo.connected = true;
-      } else {
-        diagnostics.clientInfo.connected = false;
-      }
-    } catch (error: any) {
-      diagnostics.clientInfo.infoError = error.message;
-    }
-    
-    // Verificar chats disponibles
-    try {
-      const chats = await client.getChats();
-      diagnostics.chats.totalChats = chats.length;
-      diagnostics.chats.recentChats = chats.slice(0, 5).map((chat: any) => ({
-        id: chat.id._serialized,
-        name: chat.name || 'Sin nombre',
-        isGroup: chat.isGroup,
-        lastMessageTime: chat.lastMessage?.timestamp
-      }));
-      console.log(`📱 Total de chats: ${chats.length}`);
-    } catch (error: any) {
-      diagnostics.chats.error = error.message;
-    }
-    
-    // Verificar conectividad específica con el número de prueba
-    const testPhone = '573002473899';
-    const testChatId = testPhone + '@c.us';
-    
-    try {
-      const testChat = await client.getChatById(testChatId);
-      
-      if (testChat) {
-        diagnostics.connectivity.testChatExists = true;
-        diagnostics.connectivity.testChatName = testChat.name || 'Sin nombre';
+        const { searchParams } = new URL(request.url);
+        const sessionId = searchParams.get('sessionId') || 'default';
         
-        // Obtener mensajes recientes del chat de prueba
-        try {
-          const recentMessages = await testChat.fetchMessages({ limit: 3 });
-          diagnostics.connectivity.recentMessages = recentMessages.map((msg: any) => ({
-            id: msg.id._serialized,
-            body: msg.body || '[Media]',
-            timestamp: msg.timestamp,
-            fromMe: msg.fromMe,
-            ack: msg.ack,
-            type: msg.type
-          }));
-          console.log(`📱 Mensajes recientes en chat de prueba: ${recentMessages.length}`);
-        } catch (msgError: any) {
-          diagnostics.connectivity.messagesError = msgError.message;
-        }
+        console.log(`🔍 [${sessionId}] Iniciando diagnóstico de sesión`);
         
-      } else {
-        diagnostics.connectivity.testChatExists = false;
-      }
-      
-    } catch (error: any) {
-      diagnostics.connectivity.testChatError = error.message;
+        const whatsappService = WhatsAppService.getInstance(sessionId);
+        const status = whatsappService.getStatus();
+        
+        // Información detallada del estado
+        const diagnosis = {
+            sessionId,
+            timestamp: new Date().toISOString(),
+            status: {
+                isConnected: status.isConnected,
+                phoneNumber: status.phoneNumber,
+                lastSeen: status.lastSeen,
+                hasQR: !!status.qrCode,
+                qrLength: status.qrCode?.length || 0
+            },
+            client: {
+                exists: !!whatsappService['client'],
+                hasInfo: !!whatsappService['client']?.info,
+                phoneNumber: whatsappService['client']?.info?.wid?.user || null,
+                isReady: whatsappService['client']?.pupPage ? true : false
+            },
+            session: {
+                isConnected: whatsappService['isConnected'],
+                phoneNumber: whatsappService['phoneNumber'],
+                lastSeen: whatsappService['lastSeen']
+            }
+        };
+        
+        console.log(`📊 [${sessionId}] Diagnóstico completado:`, diagnosis);
+        
+        return NextResponse.json({
+            success: true,
+            data: diagnosis
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en diagnóstico:', error);
+        return NextResponse.json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        }, { status: 500 });
     }
-    
-    // Verificar página de Puppeteer
-    try {
-      if (client.pupPage) {
-        diagnostics.connectivity.puppeteerPage = true;
-        const url = await client.pupPage.url();
-        diagnostics.connectivity.currentUrl = url;
-        console.log('📱 URL actual de Puppeteer:', url);
-      } else {
-        diagnostics.connectivity.puppeteerPage = false;
-      }
-    } catch (error: any) {
-      diagnostics.connectivity.puppeteerError = error.message;
-    }
-    
-    console.log('✅ DIAGNÓSTICO COMPLETADO');
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Diagnóstico completado',
-      diagnostics
-    });
-    
-  } catch (error) {
-    console.error('❌ Error en diagnóstico:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido',
-        diagnostics: null
-      },
-      { status: 500 }
-    );
-  }
 } 

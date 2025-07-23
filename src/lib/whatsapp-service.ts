@@ -2,23 +2,29 @@ import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import qrcode from 'qrcode';
 import { notifyConnectionChange } from './connection-events';
 
-// Variable global para mantener referencia persistente del cliente
-// Usando globalThis para asegurar persistencia
+// Variables globales para manejar múltiples sesiones de WhatsApp
 declare global {
+  var whatsappSessions: {
+    [sessionId: string]: {
+      client: Client | null;
+      state: {
+        isConnected: boolean;
+        phoneNumber?: string;
+        lastSeen?: Date | null;
+      };
+    };
+  };
   var whatsappGlobalClient: Client | null;
   var whatsappGlobalState: {
     isConnected: boolean;
-    phoneNumber?: string;
-    lastSeen?: Date | null;
+    phoneNumber: string;
+    lastSeen: Date | null;
   } | null;
 }
 
-// Inicializar variables globales si no existen
-if (typeof globalThis.whatsappGlobalClient === 'undefined') {
-  globalThis.whatsappGlobalClient = null;
-}
-if (typeof globalThis.whatsappGlobalState === 'undefined') {
-  globalThis.whatsappGlobalState = null;
+// Inicializar variable global si no existe
+if (!(globalThis as any).whatsappSessions) {
+  (globalThis as any).whatsappSessions = {};
 }
 
 export interface WhatsAppStatus {
@@ -36,50 +42,56 @@ export class WhatsAppService {
   private phoneNumber: string = '';
   private lastSeen: Date | null = null;
   private isInitializing: boolean = false;
-  private static instance: WhatsAppService | null = null;
+  private sessionId: string;
+  private static instances: { [sessionId: string]: WhatsAppService } = {};
 
-  constructor() {
-    // Restaurar cliente global si existe
-    if (globalThis.whatsappGlobalClient) {
-      console.log('🔄 Restaurando cliente global existente...');
-      this.client = globalThis.whatsappGlobalClient;
+  constructor(sessionId: string = 'default') {
+    this.sessionId = sessionId;
+    
+    // Restaurar cliente de sesión si existe
+    const session = (globalThis as any).whatsappSessions[sessionId];
+    if (session?.client) {
+      console.log(`🔄 Restaurando cliente de sesión ${sessionId}...`);
+      this.client = session.client;
       
-      // Restaurar estado global también
-      if (globalThis.whatsappGlobalState) {
-        console.log('✅ Restaurando estado global:', globalThis.whatsappGlobalState);
-        this.isConnected = globalThis.whatsappGlobalState.isConnected;
-        this.phoneNumber = globalThis.whatsappGlobalState.phoneNumber || '';
-        this.lastSeen = globalThis.whatsappGlobalState.lastSeen || null;
+      // Restaurar estado de sesión
+      if (session.state) {
+        console.log(`✅ Restaurando estado de sesión ${sessionId}:`, session.state);
+        this.isConnected = session.state.isConnected;
+        this.phoneNumber = session.state.phoneNumber || '';
+        this.lastSeen = session.state.lastSeen || null;
         this.qrCode = '';
         this.persistentQR = '';
       }
       
       // Verificar también info del cliente
-      if (globalThis.whatsappGlobalClient.info?.wid?.user) {
-        console.log('✅ Cliente global conectado como:', globalThis.whatsappGlobalClient.info.wid.user);
+      if (session.client.info?.wid?.user) {
+        console.log(`✅ Cliente de sesión ${sessionId} conectado como:`, session.client.info.wid.user);
         this.isConnected = true;
-        this.phoneNumber = globalThis.whatsappGlobalClient.info.wid.user;
+        this.phoneNumber = session.client.info.wid.user;
         this.lastSeen = new Date();
         this.qrCode = '';
         this.persistentQR = '';
-        this.saveGlobalState();
+        this.saveSessionState();
       }
     }
   }
 
-  // Singleton pattern
-  public static getInstance(): WhatsAppService {
-    if (!WhatsAppService.instance) {
-      WhatsAppService.instance = new WhatsAppService();
+  // Singleton pattern por sesión
+  public static getInstance(sessionId: string = 'default'): WhatsAppService {
+    if (!WhatsAppService.instances[sessionId]) {
+      WhatsAppService.instances[sessionId] = new WhatsAppService(sessionId);
     }
-    return WhatsAppService.instance;
+    return WhatsAppService.instances[sessionId];
   }
 
   private createClient(): Client {
-    console.log('🔄 Creando nuevo cliente WhatsApp...');
+    console.log(`🔄 Creando nuevo cliente WhatsApp para sesión ${this.sessionId}...`);
     
     const client = new Client({
-      authStrategy: new LocalAuth(),
+      authStrategy: new LocalAuth({
+        clientId: this.sessionId
+      }),
       puppeteer: {
         headless: true,
         args: [
@@ -387,9 +399,9 @@ export class WhatsAppService {
          console.log('🎉 WhatsApp conectado exitosamente como:', this.phoneNumber);
          console.log('💾 Estado guardado - Cliente activo y listo');
          
-         // Asegurar que la referencia global esté actualizada
-         this.saveGlobalState();
-         console.log('🔒 Cliente conectado guardado en referencia global persistente');
+         // Asegurar que la referencia de sesión esté actualizada
+         this.saveSessionState();
+         console.log(`🔒 Cliente conectado guardado en sesión ${this.sessionId}`);
          
          // Notificar cambio de conexión al frontend
          this.notifyConnectionChange();
@@ -541,27 +553,100 @@ export class WhatsAppService {
     return status;
   }
 
-  async sendMessage(phone: string, message: string, imageBuffer?: Buffer, imageName?: string): Promise<boolean> {
+  async sendMessage(phone: string, message: string, imageBuffer?: Buffer, imageName?: string, pdfBase64?: string, pdfFilename?: string): Promise<boolean> {
     try {
-      // Verificación mínima del estado
+      console.log(`📤 [${this.sessionId}] Intentando enviar mensaje a ${phone}`);
+      console.log(`📊 [${this.sessionId}] Parámetros:`, {
+        hasImage: !!imageBuffer,
+        imageName,
+        hasPDF: !!pdfBase64,
+        pdfFilename,
+        messageLength: message.length
+      });
+      
+      // Verificación completa del estado
       if (!this.client) {
+        console.log(`❌ [${this.sessionId}] No hay cliente disponible`);
         throw new Error('WhatsApp no está conectado');
+      }
+
+      // Verificar que el cliente tenga información de conexión
+      if (!this.client.info?.wid?.user) {
+        console.log(`⚠️ [${this.sessionId}] Cliente sin información de conexión`);
+        throw new Error('WhatsApp no está completamente conectado');
+      }
+
+      // Verificar que el cliente esté listo
+      if (!this.client.pupPage) {
+        console.log(`⚠️ [${this.sessionId}] Cliente no está listo (sin página Puppeteer)`);
+        throw new Error('WhatsApp no está listo para enviar mensajes');
       }
 
       // Formatear número de teléfono
       const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
+      console.log(`📱 [${this.sessionId}] Enviando a: ${formattedPhone}`);
 
-      // Envío directo sin verificaciones adicionales
-      if (imageBuffer && imageName) {
-        const media = new MessageMedia('image/jpeg', imageBuffer.toString('base64'), imageName);
+      // Envío con diferentes tipos de contenido
+      if (pdfBase64 && pdfFilename) {
+        // Envío con PDF
+        console.log(`📄 [${this.sessionId}] Enviando mensaje con PDF: ${pdfFilename} (${pdfBase64.length} chars)`);
+        try {
+          // Calcular el tamaño del archivo en bytes
+          const filesize = Buffer.byteLength(pdfBase64, 'base64');
+          console.log(`📊 [${this.sessionId}] Tamaño del PDF: ${filesize} bytes`);
+          
+          console.log(`🔧 [${this.sessionId}] Creando MessageMedia para PDF...`);
+          const media = new MessageMedia('application/pdf', pdfBase64, pdfFilename, filesize);
+          console.log(`✅ [${this.sessionId}] MessageMedia creado exitosamente`);
+          
+          console.log(`📤 [${this.sessionId}] Enviando PDF con caption...`);
+          const result = await this.client.sendMessage(formattedPhone, media, { caption: message });
+          console.log(`✅ [${this.sessionId}] PDF enviado exitosamente:`, result.id._serialized);
+        } catch (pdfError) {
+          console.error(`❌ [${this.sessionId}] Error enviando PDF:`, pdfError);
+          // Intentar enviar solo texto si falla el PDF
+          console.log(`🔄 [${this.sessionId}] Intentando enviar solo texto...`);
+          await this.client!.sendMessage(formattedPhone, message);
+        }
+      } else if (imageBuffer && imageName) {
+        // Envío con imagen
+        console.log(`🖼️ [${this.sessionId}] Enviando mensaje con imagen: ${imageName}`);
+        const imageBase64 = imageBuffer.toString('base64');
+        const filesize = imageBuffer.length;
+        console.log(`📊 [${this.sessionId}] Tamaño de la imagen: ${filesize} bytes`);
+        
+        console.log(`🔧 [${this.sessionId}] Creando MessageMedia para imagen...`);
+        const media = new MessageMedia('image/jpeg', imageBase64, imageName, filesize);
+        console.log(`✅ [${this.sessionId}] MessageMedia creado exitosamente`);
+        
+        console.log(`📤 [${this.sessionId}] Enviando imagen con caption...`);
         await this.client.sendMessage(formattedPhone, media, { caption: message });
+        console.log(`✅ [${this.sessionId}] Imagen enviada exitosamente`);
       } else {
-        await this.client.sendMessage(formattedPhone, message);
+        // Envío solo texto
+        console.log(`💬 [${this.sessionId}] Enviando mensaje de texto`);
+        const result = await this.client.sendMessage(formattedPhone, message);
+        console.log(`✅ [${this.sessionId}] Texto enviado exitosamente:`, result.id._serialized);
       }
 
+      console.log(`✅ [${this.sessionId}] Mensaje enviado exitosamente a ${phone}`);
       return true;
     } catch (error) {
-      console.error(`❌ Error enviando mensaje a ${phone}:`, error);
+      console.error(`❌ [${this.sessionId}] Error enviando mensaje a ${phone}:`, error);
+      
+      // Si es un error de PDF, intentar enviar solo texto
+      if (pdfBase64 && error instanceof Error && error.message.includes('PDF')) {
+        console.log(`🔄 [${this.sessionId}] Reintentando sin PDF...`);
+        try {
+          const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
+          await this.client!.sendMessage(formattedPhone, message);
+          console.log(`✅ [${this.sessionId}] Mensaje de texto enviado como fallback`);
+          return true;
+        } catch (fallbackError) {
+          console.error(`❌ [${this.sessionId}] Error en fallback:`, fallbackError);
+        }
+      }
+      
       throw error;
     }
   }
@@ -603,14 +688,15 @@ export class WhatsAppService {
           }
           
           // Verificar si está conectado desde info del cliente
-          if (globalThis.whatsappGlobalClient.info?.wid?.user) {
-            console.log('✅ Cliente global conectado:', globalThis.whatsappGlobalClient.info.wid.user);
+          const session = (globalThis as any).whatsappSessions[this.sessionId];
+          if (session?.client?.info?.wid?.user) {
+            console.log(`✅ Cliente de sesión ${this.sessionId} conectado:`, session.client.info.wid.user);
             this.isConnected = true;
-            this.phoneNumber = globalThis.whatsappGlobalClient.info.wid.user;
+            this.phoneNumber = session.client.info.wid.user;
             this.lastSeen = new Date();
             this.qrCode = '';
             this.persistentQR = '';
-            this.saveGlobalState();
+            this.saveSessionState();
             return this.getStatus();
           }
         }
@@ -676,15 +762,26 @@ export class WhatsAppService {
     return cleaned + '@c.us';
   }
 
-  // Método para guardar estado global
-  private saveGlobalState() {
-    globalThis.whatsappGlobalClient = this.client;
-    globalThis.whatsappGlobalState = {
+  // Método para guardar estado de sesión
+  private saveSessionState() {
+    if (!(globalThis as any).whatsappSessions[this.sessionId]) {
+      (globalThis as any).whatsappSessions[this.sessionId] = {
+        client: null,
+        state: {
+          isConnected: false,
+          phoneNumber: '',
+          lastSeen: null
+        }
+      };
+    }
+    
+    (globalThis as any).whatsappSessions[this.sessionId].client = this.client;
+    (globalThis as any).whatsappSessions[this.sessionId].state = {
       isConnected: this.isConnected,
       phoneNumber: this.phoneNumber,
       lastSeen: this.lastSeen
     };
-    console.log('💾 Estado guardado globalmente:', globalThis.whatsappGlobalState);
+    console.log(`💾 Estado guardado para sesión ${this.sessionId}:`, (globalThis as any).whatsappSessions[this.sessionId].state);
   }
 
   // Método para verificar si un mensaje se entregó (retorna boolean)

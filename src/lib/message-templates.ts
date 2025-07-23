@@ -1,5 +1,13 @@
 import { MessageTemplate } from '../types';
 
+// Partes no editables de los mensajes
+export const READ_ONLY_PARTS = [
+  'Estimado/a {nombre_apellidos}',
+  'Estimado/a {NOMBRE_APELLIDOS}',
+  'Estimado/a {nombre}',
+  'Estimado/a {NOMBRE}'
+];
+
 // Plantillas de mensajes por grupos
 export const messageTemplates: MessageTemplate[] = [
   {
@@ -30,7 +38,10 @@ Para inscribirte, por favor seguir estos tres (3) pasos:
 LINK REGISTRO SISTEMA HERMES:
 https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56222&cs=1dBDBZ-sKUll75rat53uCq_cI9b8
 
-2️⃣Diligencia los documentos adjuntos (formatos requeridos). https://forms.gle/7wuVd9bdXomVFh2v5
+2️⃣Diligencia los documentos adjuntos (formatos requeridos). 
+📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
+📁 Docuemnto en pdf se debe descragar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+
 3⃣ Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
 
 📅 Inicio del curso: Martes 15 de Julio
@@ -67,6 +78,8 @@ LINK REGISTRO SISTEMA HERMES:
 https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56223&cs=1FczQeumzeI-0ysQHywJi_TMWQWo
 
 2️⃣Diligencia los documentos adjuntos (formatos requeridos).
+📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
+📁 Docuemnto en pdf se debe descragar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
 
 3⃣Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
 

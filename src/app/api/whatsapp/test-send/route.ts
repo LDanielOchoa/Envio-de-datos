@@ -1,113 +1,99 @@
 import { NextResponse } from 'next/server';
 import { WhatsAppService } from '../../../../lib/whatsapp-service';
-import fs from 'fs';
-import path from 'path';
+import { PDFService } from '../../../../lib/pdf-service';
 
-export async function POST(request: any) {
-  try {
-    // Verificar si es FormData (con imagen) o JSON
-    const contentType = request.headers.get('content-type');
-    let phone, message, imageFile = null;
-    
-    if (contentType?.includes('multipart/form-data')) {
-      // Con imagen
-      const formData = await request.formData();
-      phone = formData.get('phone') as string;
-      message = formData.get('message') as string;
-      imageFile = formData.get('image') as File | null;
-      const useDefaultImage = formData.get('useDefaultImage') === 'true';
-      
-      if (imageFile) {
-        console.log('🧪 TEST: Imagen recibida:', imageFile.name, imageFile.size);
-      } else if (useDefaultImage) {
-        console.log('🧪 TEST: Usando imagen por defecto...');
-        
-        // Cargar imagen por defecto desde docs
-        try {
-          const imagePath = path.join(process.cwd(), 'docs', 'Imagen de WhatsApp 2025-07-19 a las 19.28.39_2d51dfb9.jpg');
-          if (fs.existsSync(imagePath)) {
-            const imageBuffer = fs.readFileSync(imagePath);
-            // Crear un File object simulado
-            const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
-            imageFile = new File([blob], 'Imagen de WhatsApp 2025-07-19 a las 19.28.39_2d51dfb9.jpg', { type: 'image/jpeg' });
-            console.log('✅ TEST: Imagen por defecto cargada:', imageFile.name, imageBuffer.length, 'bytes');
-          } else {
-            console.log('❌ TEST: Imagen por defecto no encontrada');
-          }
-        } catch (error) {
-          console.log('❌ TEST: Error cargando imagen por defecto:', error);
-        }
-      }
-    } else {
-      // Sin imagen (JSON tradicional)
-      const body = await request.json();
-      phone = body.phone;
-      message = body.message;
-    }
-    
-    if (!phone || !message) {
-      return NextResponse.json(
-        { success: false, error: 'Se requiere teléfono y mensaje' },
-        { status: 400 }
-      );
-    }
-    
-    console.log('🧪 TEST: Enviando mensaje de prueba...');
-    console.log('📱 Teléfono:', phone);
-    console.log('💬 Mensaje:', message);
-    
-    const whatsappService = WhatsAppService.getInstance();
-    
-    // Procesar imagen si existe
-    let imageBuffer: Buffer | undefined;
-    let imageName: string | undefined;
-    
-    if (imageFile) {
-      try {
-        const arrayBuffer = await imageFile.arrayBuffer();
-        imageBuffer = Buffer.from(arrayBuffer);
-        imageName = imageFile.name;
-        console.log('🧪 TEST: Imagen procesada:', imageName, 'Tamaño:', imageBuffer.length, 'bytes');
-      } catch (error) {
-        console.error('❌ TEST: Error procesando imagen:', error);
-        return NextResponse.json(
-          { success: false, error: 'Error procesando la imagen de prueba' },
-          { status: 400 }
-        );
-      }
-    }
-    
+export async function POST(request: Request) {
     try {
-      const success = await whatsappService.sendMessage(phone, message, imageBuffer, imageName);
-      
+      const formData = await request.formData();
+        const phone = formData.get('phone') as string;
+        const message = formData.get('message') as string;
+        const includePDF = formData.get('includePDF') === 'true';
+        
+        // Obtener sessionId del header
+        const sessionId = request.headers.get('X-Session-Id') || 'default';
+        
+        if (!phone || !message) {
+            return NextResponse.json({
+                success: false,
+                error: 'Faltan datos requeridos (phone, message)'
+            }, { status: 400 });
+        }
+
+        console.log(`🧪 [${sessionId}] Iniciando prueba de envío a ${phone}`);
+        
+        const whatsappService = WhatsAppService.getInstance(sessionId);
+        
+        // Verificar estado antes del envío
+        const status = whatsappService.getStatus();
+        console.log(`📊 [${sessionId}] Estado antes del envío:`, {
+            isConnected: status.isConnected,
+            phoneNumber: status.phoneNumber,
+            hasQR: !!status.qrCode
+        });
+        
+        if (!status.isConnected) {
+            return NextResponse.json({
+                success: false,
+                error: 'WhatsApp no está conectado'
+            }, { status: 400 });
+        }
+
+        // Preparar PDF si se requiere
+        let pdfBase64: string | undefined;
+        let pdfFilename: string | undefined;
+        
+        if (includePDF) {
+            try {
+                console.log('📄 Preparando PDF para prueba...');
+                const pdfExists = await PDFService.checkDefaultPDFExists();
+                
+                if (!pdfExists) {
+                    return NextResponse.json({
+                        success: false,
+                        error: 'El archivo PDF por defecto no existe'
+                    }, { status: 400 });
+                }
+                
+                pdfBase64 = await PDFService.readPDFAsBase64();
+                pdfFilename = PDFService.getDefaultPDFConfig().filename;
+                
+                console.log('✅ PDF preparado para prueba');
+            } catch (error) {
+                console.error('❌ Error preparando PDF:', error);
+                return NextResponse.json({
+                    success: false,
+                    error: `Error preparando PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`
+                }, { status: 500 });
+            }
+        }
+
+        // Intentar enviar el mensaje
+        const success = await whatsappService.sendMessage(phone, message, undefined, undefined, pdfBase64, pdfFilename);
+        
+        if (success) {
+            console.log(`✅ [${sessionId}] Mensaje de prueba enviado exitosamente`);
       return NextResponse.json({
         success: true,
-        message: imageFile ? 'Mensaje de prueba con imagen enviado' : 'Mensaje de prueba enviado',
-        details: { 
+                data: {
+                    message: 'Mensaje enviado correctamente',
           phone, 
-          messageSent: message,
-          imageIncluded: !!imageFile,
-          imageName: imageName || null
+                    sessionId,
+                    includePDF,
+                    pdfFilename: includePDF ? pdfFilename : undefined
+                }
+            });
+        } else {
+            return NextResponse.json({
+                success: false,
+                error: 'Error al enviar mensaje'
+            }, { status: 500 });
         }
-      });
-      
-    } catch (error: any) {
-      console.error('❌ TEST ERROR:', error);
-      return NextResponse.json(
-        { 
+
+    } catch (error) {
+        console.error('❌ Error en prueba de envío:', error);
+        return NextResponse.json({
           success: false, 
-          error: error.message,
-          details: { phone, originalError: error.toString() }
-        },
-        { status: 500 }
-      );
-    }
-    
-  } catch (error: any) {
-    console.error('❌ API TEST ERROR:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error en API de prueba' },
-      { status: 500 }
-    );
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        }, { status: 500 });
   }
 } 

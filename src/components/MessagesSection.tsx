@@ -1,6 +1,8 @@
 import React from 'react';
-import { Contact, SendResults } from '../types';
-import { messageTemplates, personalizeMessage } from '../lib/message-templates';
+import { Contact, SendResults, AuthState } from '../types';
+import { messageTemplates, personalizeMessage, READ_ONLY_PARTS } from '../lib/message-templates';
+import MessageEditor from './MessageEditor';
+import MessagePreview from './MessagePreview';
 
 interface MessagesSectionProps {
   message: string;
@@ -9,6 +11,9 @@ interface MessagesSectionProps {
   results: SendResults | null;
   loading: boolean;
   whatsappStatus: any;
+  authState: AuthState;
+  includePDF: boolean;
+  setIncludePDF: (include: boolean) => void;
   onTestSend: () => void;
   onSendMessages: () => void;
   onFilterByTemplate?: (templateGroup: string | null) => void;
@@ -21,12 +26,20 @@ export default function MessagesSection({
   results,
   loading,
   whatsappStatus,
+  authState,
+  includePDF,
+  setIncludePDF,
   onTestSend,
   onSendMessages,
   onFilterByTemplate
 }: MessagesSectionProps) {
   const [selectedTemplate, setSelectedTemplate] = React.useState('default');
   const [showTemplatePreview, setShowTemplatePreview] = React.useState(false);
+  const [pdfStatus, setPdfStatus] = React.useState<{
+    exists: boolean;
+    size: number;
+    isValid: boolean;
+  } | null>(null);
   const [previewContact, setPreviewContact] = React.useState<Contact | null>(null);
 
   // Filtrar contactos según la plantilla seleccionada
@@ -54,6 +67,28 @@ export default function MessagesSection({
   };
 
   const filteredContacts = getFilteredContacts();
+
+  // Verificar estado del PDF al cargar el componente
+  React.useEffect(() => {
+    const checkPdfStatus = async () => {
+      try {
+        const response = await fetch('/api/pdf/status');
+        const data = await response.json();
+        
+        if (data.success) {
+          setPdfStatus({
+            exists: data.data.exists,
+            size: data.data.info.size,
+            isValid: data.data.isValid
+          });
+        }
+      } catch (error) {
+        console.error('Error verificando estado del PDF:', error);
+      }
+    };
+    
+    checkPdfStatus();
+  }, []);
 
   // Seleccionar un contacto aleatorio para la previsualización
   React.useEffect(() => {
@@ -85,35 +120,7 @@ export default function MessagesSection({
     return message;
   };
 
-  // Resaltar las partes personalizadas en el mensaje de previsualización
-  const highlightPersonalization = (text: string) => {
-    if (!previewContact) return text;
-    
-    // Crear un nombre completo en mayúsculas para identificarlo en el texto
-    const fullNameUpperCase = previewContact.lastName 
-      ? `${previewContact.name} ${previewContact.lastName}`.toUpperCase()
-      : previewContact.name.toUpperCase();
-    
-    // Dividir el texto por el nombre en mayúsculas para resaltarlo
-    const parts = text.split(fullNameUpperCase);
-    
-    if (parts.length === 1) return text; // No se encontró el nombre
-    
-    return (
-      <>
-        {parts.map((part, index) => (
-          <React.Fragment key={index}>
-            {part}
-            {index < parts.length - 1 && (
-              <span className="bg-yellow-200 font-semibold px-1 rounded">
-                {fullNameUpperCase}
-              </span>
-            )}
-          </React.Fragment>
-        ))}
-      </>
-    );
-  };
+
 
   return (
     <div className="space-y-8">
@@ -127,6 +134,8 @@ export default function MessagesSection({
           Envía el mensaje oficial de Colombia Productiva sobre el curso de Gestión de Sostenibilidad
         </p>
       </div>
+
+
 
       {/* Personalización de mensajes - Banner informativo */}
       {contacts.length > 0 && (
@@ -215,30 +224,11 @@ export default function MessagesSection({
         
         {/* Template Preview */}
         {showTemplatePreview && (
-          <div className="bg-white rounded-xl p-4 border border-blue-200">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-gray-900">
-                Vista Previa: {messageTemplates.find(t => t.id === selectedTemplate)?.name}
-              </h4>
-              {previewContact && (
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                  📝 Personalizado para: <strong>{previewContact.name} {previewContact.lastName || ''}</strong> 
-                  {previewContact.group && ` (Grupo ${previewContact.group})`}
-                </span>
-              )}
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto">
-              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-                {previewContact ? highlightPersonalization(getPreviewMessage()) : message}
-              </p>
-            </div>
-            {previewContact && (
-              <div className="mt-3 text-xs text-gray-500 flex items-center">
-                <span className="mr-1">💡</span>
-                <span>Las partes resaltadas en amarillo son personalizadas para cada contacto. Se utilizan <strong>nombre y apellido</strong> en MAYÚSCULAS.</span>
-              </div>
-            )}
-          </div>
+          <MessagePreview
+            message={previewContact ? getPreviewMessage() : message}
+            contact={previewContact}
+            showPersonalization={!!previewContact}
+          />
         )}
         
         {/* Template Info */}
@@ -269,17 +259,17 @@ export default function MessagesSection({
           </div>
 
           <div className="p-6 space-y-6">
-            {/* Message Textarea */}
+            {/* Message Editor */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 📝 Contenido del Mensaje
               </label>
-              <textarea
+              <MessageEditor
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={setMessage}
                 placeholder="El mensaje aparecerá aquí al seleccionar una plantilla..."
                 rows={10}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200"
+                readOnlyParts={READ_ONLY_PARTS}
               />
               <div className="flex justify-between items-center mt-2">
                 <p className="text-xs text-gray-500">
@@ -299,6 +289,8 @@ export default function MessagesSection({
                   <span className="font-semibold">💡 Tip:</span> Usa <code className="bg-blue-100 px-1 py-0.5 rounded">{'{nombre_apellidos}'}</code> para incluir el nombre y apellido del contacto en MAYÚSCULAS. Se combinan las columnas "Nombres Beneficiario" y "Apellidos Beneficiario".
                 </p>
               </div>
+              
+             
             </div>
 
             {/* Action Buttons */}
@@ -321,14 +313,6 @@ export default function MessagesSection({
                 }
                 return null;
               })()}
-
-              <button
-                onClick={onTestSend}
-                disabled={loading || !message.trim() || !whatsappStatus?.isConnected || filteredContacts.length === 0}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                🧪 Probar Mensaje
-              </button>
 
               <button
                 onClick={onSendMessages}
