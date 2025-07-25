@@ -158,6 +158,12 @@ function processUnitaryContacts(data: any[]) {
             
             console.log(`✅ Contacto agregado: ${formattedPhone} (Fila ${rowIndex})`);
         }
+        
+        // Limitar a 500 contactos para evitar problemas de memoria
+        if (contacts.length >= 500) {
+            console.log('⚠️ Limitando a 500 contactos para evitar problemas de memoria');
+            break;
+        }
     }
     
     console.log(`📱 Total de contactos encontrados: ${contacts.length}`);
@@ -263,6 +269,12 @@ function processGroupContacts(data: any[]) {
         } else {
             console.log(`⏭️ [GRUPOS] Contacto omitido por estado: ${resultadoContacto}`);
         }
+        
+        // Limitar a 500 contactos para evitar problemas de memoria
+        if (contacts.length >= 500) {
+            console.log('⚠️ [GRUPOS] Limitando a 500 contactos para evitar problemas de memoria');
+            break;
+        }
     }
     
     console.log(`📱 [GRUPOS] Total de contactos encontrados: ${contacts.length}`);
@@ -274,4 +286,4 @@ function processGroupContacts(data: any[]) {
             total: contacts.length
         }
     });
-} 
+}
