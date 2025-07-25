@@ -4,6 +4,11 @@ import { Contact, SheetType } from '../../../../types';
 
 // Marcar la ruta como dinámica para evitar la compilación estática
 export const dynamic = 'force-dynamic';
+// Configurar timeout más largo para archivos grandes
+export const maxDuration = 300; // 5 minutos
+// Configurar límites de memoria
+export const runtime = 'nodejs';
+export const preferredRegion = 'auto';
 
 export async function POST(request: Request) {
     try {
@@ -77,6 +82,9 @@ export async function POST(request: Request) {
 
         console.log(`📊 Filas encontradas: ${data.length}`);
         
+        // Liberar memoria del workbook
+        delete (workbook as any).Sheets;
+        
         // Procesar según el tipo de hoja
         if (sheetType === 'g29_30') {
             return processGroupContacts(data);
@@ -139,7 +147,10 @@ function processUnitaryContacts(data: any[]) {
         const phone = String(row[phoneIndex]).trim();
         const status = row[statusIndex] ? String(row[statusIndex]).trim() : '';
         
-        console.log(`   Fila ${rowIndex}: Teléfono=${phone}, Estado=${status}`);
+        // Log de progreso cada 50 filas para archivos grandes
+        if (rowIndex % 50 === 0) {
+            console.log(`📊 Procesando fila ${rowIndex} de ${data.length} (${contacts.length} contactos válidos encontrados)`);
+        }
         
         // Solo incluir si está sin contactar
         if (status === 'Sin contactar') {
@@ -155,8 +166,6 @@ function processUnitaryContacts(data: any[]) {
                 phone: formattedPhone,
                 status: 'pending'
             });
-            
-            console.log(`✅ Contacto agregado: ${formattedPhone} (Fila ${rowIndex})`);
         }
         
         // Limitar a 500 contactos para evitar problemas de memoria
@@ -242,7 +251,10 @@ function processGroupContacts(data: any[]) {
             ? String(row[resultadoContactoIndex]).trim() 
             : '';
         
-        console.log(`   [GRUPOS] Fila ${rowIndex}: Nombres=${nombres}, Apellidos=${apellidos}, Teléfono=${phone}, Grupo=${group}, Resultado=${resultadoContacto}`);
+        // Log de progreso cada 50 filas para archivos grandes
+        if (rowIndex % 50 === 0) {
+            console.log(`📊 [GRUPOS] Procesando fila ${rowIndex} de ${data.length} (${contacts.length} contactos válidos encontrados)`);
+        }
         
         // Verificar si debemos incluir este contacto
         // Si tenemos la columna "Resultado Contacto", solo incluir "Sin contactar"
@@ -264,10 +276,6 @@ function processGroupContacts(data: any[]) {
                 status: 'pending',
                 group: group
             });
-            
-            console.log(`✅ [GRUPOS] Contacto agregado: ${nombres} ${apellidos} - ${formattedPhone} (Grupo: ${group})`);
-        } else {
-            console.log(`⏭️ [GRUPOS] Contacto omitido por estado: ${resultadoContacto}`);
         }
         
         // Limitar a 500 contactos para evitar problemas de memoria
