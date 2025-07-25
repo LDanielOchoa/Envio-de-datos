@@ -22,13 +22,13 @@ interface SendingProgress {
 class SendingProgressManager {
   private static instances: { [sessionId: string]: SendingProgress } = {};
 
-  static initializeProgress(sessionId: string, totalContacts: number, contacts?: Array<{id: string, name: string, lastName: string, phone: string}>): void {
+  static initializeProgress(sessionId: string, totalContacts: number, contacts?: Array<{id: string, name: string, lastName?: string, phone: string}>): void {
     console.log(`📊 [${sessionId}] Inicializando progreso para ${totalContacts} contactos`);
     
     // Crear lista inicial de contactos con estado 'pending'
     const initialResults = contacts ? contacts.map(contact => ({
       contactId: contact.id,
-      contactName: `${contact.name} ${contact.lastName}`.trim(),
+      contactName: `${contact.name} ${contact.lastName || ''}`.trim(),
       status: 'pending' as const,
       phone: contact.phone,
       timestamp: new Date()
