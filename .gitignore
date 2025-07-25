@@ -8,6 +8,52 @@ yarn-error.log*
 .next/
 out/
 
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# WhatsApp sessions and cache (LARGE FILES)
+whatsapp-sessions/
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Logs
+logs/
+*.log
+
+# Build files
+tsconfig.tsbuildinfo
+
+# Google credentials
+credentials.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+public/uploads/
+
+# Cache directories
+.cache/
+.tmp/
+
+# Large documents and media
+*.xlsx
+*.pdf
+*.jpg
+*.png
+*.gif
+*.mp4
+*.avi
+
 # Production
 build/
 dist/
@@ -28,7 +74,6 @@ logs/
 
 # Google credentials
 credentials.json
-*.json
 
 # IDE
 .vscode/
