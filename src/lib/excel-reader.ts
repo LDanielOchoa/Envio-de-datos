@@ -19,7 +19,7 @@ export async function getContactsFromExcel(): Promise<Contact[]> {
         }
         
         // Convertir a array de objetos
-        const data = readFile(filePath, { sheetRows: 1000 });
+        const data = readFile(filePath, { sheetRows: 2000 });
         const rows = data.Sheets[sheetName];
         
         if (!rows) {
@@ -93,4 +93,4 @@ export async function getContactsFromExcel(): Promise<Contact[]> {
         console.error('Error leyendo Excel:', error);
         throw new Error(`Error al leer el archivo Excel: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-} 
+}

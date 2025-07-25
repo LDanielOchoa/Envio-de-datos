@@ -3,6 +3,18 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
+  // Configuración para manejar archivos grandes y muchos contactos
+  experimental: {
+    // Aumentar límite de body para cargas grandes
+    isrMemoryCacheSize: 0,
+  },
+  // Configurar límites de API
+  api: {
+    bodyParser: {
+      sizeLimit: '100mb', // Aumentar límite de 1MB a 50MB
+    },
+    responseLimit: false,
+  },
   async headers() {
     return [
       {
@@ -17,4 +29,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig

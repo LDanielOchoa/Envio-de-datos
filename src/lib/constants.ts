@@ -9,14 +9,14 @@ export const APP_CONFIG = {
 export const WHATSAPP_CONFIG = {
   MAX_MESSAGE_LENGTH: 1000,
   DELAY_BETWEEN_MESSAGES: 3000, // 3 segundos
-  MAX_CONTACTS_PER_BATCH: 100,
+  MAX_CONTACTS_PER_BATCH: 500,
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 horas
   QR_CODE_SIZE: 256
 };
 
 export const GOOGLE_SHEETS_CONFIG = {
   DEFAULT_RANGE: 'A:C',
-  MAX_ROWS: 1000,
+  MAX_ROWS: 2000,
   REQUIRED_COLUMNS: ['Nombre', 'Teléfono'],
   OPTIONAL_COLUMNS: ['Email']
 };
@@ -44,7 +44,7 @@ export const ERROR_MESSAGES = {
   INVALID_CREDENTIALS: 'Credenciales de Google inválidas',
   NO_CONTACTS_FOUND: 'No se encontraron contactos válidos',
   MESSAGE_TOO_LONG: 'El mensaje es demasiado largo (máximo 1000 caracteres)',
-  TOO_MANY_CONTACTS: 'Demasiados contactos (máximo 100)',
+  TOO_MANY_CONTACTS: 'Demasiados contactos (máximo 500)',
   RATE_LIMIT_EXCEEDED: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
   GOOGLE_SHEETS_ERROR: 'Error al acceder a Google Sheets',
   WHATSAPP_SEND_ERROR: 'Error al enviar mensaje de WhatsApp'
@@ -92,4 +92,4 @@ export const CRON_SCHEDULES = {
   CLEAN_RATE_LIMITER: '0 * * * *', // Cada hora
   CLEAN_LOGS: '0 2 * * *', // Cada día a las 2 AM
   SYSTEM_HEALTH_CHECK: '*/5 * * * *' // Cada 5 minutos
-}; 
+};

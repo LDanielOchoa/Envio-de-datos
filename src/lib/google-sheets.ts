@@ -297,9 +297,9 @@ export async function getContactsFromGoogleSheet(sheetUrl: string, sheetType: Sh
       phoneSet.add(phone);
       console.log(`✅ Contacto agregado: ${name} ${lastName} (${phone}) - Grupo: ${group}`);
       
-      // Limitar a 100 contactos para evitar problemas
-      if (contacts.length >= 100) {
-        console.log('⚠️ Limitando a 100 contactos');
+      // Limitar a 500 contactos para evitar problemas de memoria
+      if (contacts.length >= 500) {
+        console.log('⚠️ Limitando a 500 contactos para evitar problemas de memoria');
         break;
       }
     }
@@ -311,4 +311,4 @@ export async function getContactsFromGoogleSheet(sheetUrl: string, sheetType: Sh
     console.error('❌ Error obteniendo contactos:', error);
     throw new Error(`Error al obtener contactos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
-} 
+}

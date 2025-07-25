@@ -805,8 +805,8 @@ export default function Home() {
                                             <input
                                                 type="number"
                                                 min="1"
-                                                max="100"
-                                                defaultValue="50"
+                                                max="500"
+                                                defaultValue="100"
                                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
