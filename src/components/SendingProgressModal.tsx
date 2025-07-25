@@ -88,7 +88,7 @@ export default function SendingProgressModal({
           const data = await response.json();
           
           if (data.success) {
-            const processedCount = data.data.results ? data.data.results.filter(r => r.status !== 'pending').length : 0;
+            const processedCount = data.data.results ? data.data.results.filter((r: { status: string }) => r.status !== 'pending').length : 0;
             const logMessage = `📊 Progreso: ${processedCount}/${data.data.totalContacts} | ✅ ${data.data.successCount} enviados | ❌ ${data.data.errorCount + data.data.invalidNumbersCount} sin WhatsApp`;
             console.log(`✅ [Modal] ${logMessage}`);
             
@@ -100,7 +100,7 @@ export default function SendingProgressModal({
             
             // Mostrar detalles de los últimos contactos procesados
             if (data.data.results && data.data.results.length > 0) {
-              const recentResults = data.data.results.filter(r => r.status !== 'pending').slice(-3);
+              const recentResults = data.data.results.filter((r: { status: string }) => r.status !== 'pending').slice(-3);
               if (recentResults.length > 0) {
                 console.log(`📋 [Modal] Últimos contactos procesados:`);
                 recentResults.forEach(result => {
