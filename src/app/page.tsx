@@ -116,7 +116,7 @@ export default function Home() {
 
     const forceRefreshStatus = async () => {
         if (!authState.user) return;
-        
+
         try {
             addLog('🔍 Verificando conexión manualmente...');
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -232,7 +232,7 @@ export default function Home() {
 
     const refreshClient = async () => {
         if (!authState.user) return;
-        
+
         addLog('🔄 Refrescando cliente WhatsApp...');
         try {
             const response = await fetch('/api/whatsapp/refresh', {
@@ -324,7 +324,7 @@ export default function Home() {
                 setContacts(contactsFound);
                 addLog(`✅ [GRUPOS] Archivo procesado correctamente`);
                 addLog(`📊 [GRUPOS] Contactos encontrados: ${contactsFound.length}`);
-                
+
                 // Mostrar estadísticas por grupo
                 const grupo29 = contactsFound.filter((c: Contact) => c.group === '29').length;
                 const grupo30 = contactsFound.filter((c: Contact) => c.group === '30').length;
@@ -357,11 +357,11 @@ export default function Home() {
             // Filtrar usando la misma lógica que en MessagesSection
             const filtered = contacts.filter(contact => {
                 if (!contact.group) return false;
-                
+
                 // Normalizar el grupo del contacto (puede venir como "Grupo 29", "29", etc.)
                 const contactGroup = contact.group.toLowerCase().trim();
                 const templateGroupLower = templateGroup.toLowerCase().trim();
-                
+
                 // Verificar diferentes patrones
                 return (
                     contactGroup === templateGroupLower || // Coincidencia exacta
@@ -370,7 +370,7 @@ export default function Home() {
                     contactGroup.includes(templateGroupLower) // Cualquier formato que contenga el número
                 );
             });
-            
+
             setFilteredContacts(filtered);
             addLog(`🎯 Filtrado activado: Mostrando solo contactos del Grupo ${templateGroup} (${filtered.length} contactos)`);
         } else {
@@ -403,11 +403,10 @@ export default function Home() {
         }
 
         setLoading(true);
-        setShowSendingModal(true);
         setSendingProgress([]);
         setCurrentSendingIndex(0);
         addLog(`📤 Enviando mensajes optimizado a ${filteredContacts.length} contactos...`);
-        
+
         // Inicializar progreso
         const initialProgress: SendingProgress[] = filteredContacts.map(contact => ({
             contactId: contact.id,
@@ -422,16 +421,22 @@ export default function Home() {
             const formData = new FormData();
             formData.append('contacts', JSON.stringify(filteredContacts));
             formData.append('message', message);
-            
+
             // Determinar si usar plantillas basado en si el mensaje contiene {nombre_apellidos}
             const useTemplates = message.includes('{nombre_apellidos}') || message.includes('{grupo}');
             formData.append('useTemplates', useTemplates.toString());
-            
+
             // Por defecto, no saltar validación (validar números)
             formData.append('skipValidation', 'false');
-            
+
             console.log('🔧 Enviando con useTemplates:', useTemplates, 'skipValidation: false');
 
+            // Abrir el modal justo antes de hacer la llamada
+            setShowSendingModal(true);
+            
+            // Pequeño delay para que el modal se renderice antes de iniciar el polling
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             const response = await fetch('/api/whatsapp/send-reliable', {
                 method: 'POST',
                 body: formData,
@@ -443,8 +448,8 @@ export default function Home() {
             const data = await response.json();
 
             if (data.success) {
-                const { results: serverResults, successCount, errorCount, invalidNumbersCount, invalidNumbers } = data.data;
-                
+                const { results: serverResults, successCount, errorCount, invalidNumbersCount, verifiedWhatsappCount, invalidNumbers } = data.data;
+
                 // Actualizar progreso basado en los resultados del servidor
                 const updatedProgress = initialProgress.map((item, index) => {
                     const result = serverResults[index];
@@ -459,14 +464,15 @@ export default function Home() {
                     }
                     return item;
                 });
-                
+
                 setSendingProgress(updatedProgress);
-                
+
                 // Actualizar resultados finales
                 setResults({
                     successCount,
                     errorCount,
                     invalidNumbersCount,
+                    verifiedWhatsappCount,
                     invalidNumbers,
                     results: serverResults
                 });
@@ -475,7 +481,8 @@ export default function Home() {
                 addLog(`   ✅ ${successCount} exitosos`);
                 addLog(`   ❌ ${errorCount} fallidos`);
                 addLog(`   ⚠️ ${invalidNumbersCount} sin WhatsApp`);
-                
+                addLog(`   📱 ${verifiedWhatsappCount} con WhatsApp`);
+
                 if (invalidNumbers && invalidNumbers.length > 0) {
                     addLog(`📋 Números sin WhatsApp: ${invalidNumbers.join(', ')}`);
                 }
@@ -510,10 +517,10 @@ export default function Home() {
 
         try {
             addLog('🧪 Enviando mensaje de prueba...');
-            
+
             // Crear un contacto de prueba o usar el primero disponible
-            const testContact = filteredContacts.length > 0 
-                ? filteredContacts[0] 
+            const testContact = filteredContacts.length > 0
+                ? filteredContacts[0]
                 : {
                     id: 'test_contact',
                     name: 'Usuario',
@@ -521,10 +528,10 @@ export default function Home() {
                     phone: whatsappStatus.phoneNumber,
                     status: 'pending'
                 };
-            
+
             // Personalizar el mensaje para el contacto de prueba
             const personalizedMessage = personalizeMessage(message, testContact);
-            
+
             const formData = new FormData();
             formData.append('phone', testContact.phone);
             formData.append('message', personalizedMessage);
@@ -538,7 +545,7 @@ export default function Home() {
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
                 addLog(`✅ Mensaje de prueba enviado correctamente a ${testContact.name}`);
             } else {
@@ -610,7 +617,7 @@ export default function Home() {
     // Si no está autenticado, mostrar login
     if (!authState.isAuthenticated) {
         return (
-            <LoginForm 
+            <LoginForm
                 onLogin={handleLogin}
                 isLoading={authState.isLoading}
             />
@@ -622,7 +629,7 @@ export default function Home() {
             <div className="max-w-7xl mx-auto p-6">
                 {/* User Header */}
                 {authState.user && (
-                    <UserHeader 
+                    <UserHeader
                         user={authState.user}
                         onLogout={handleLogout}
                     />
@@ -637,7 +644,7 @@ export default function Home() {
                         Colombia Productiva
                     </h1>
                     <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                        Sistema de envío de mensajes WhatsApp para el curso de 
+                        Sistema de envío de mensajes WhatsApp para el curso de
                         <span className="font-semibold text-blue-700"> Gestión de Sostenibilidad</span>
                     </p>
                 </header>
@@ -652,9 +659,8 @@ export default function Home() {
                                     {whatsappStatus?.isConnected ? 'Conectado' : 'Desconectado'}
                                 </p>
                             </div>
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                whatsappStatus?.isConnected ? 'bg-green-100' : 'bg-red-100'
-                            }`}>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${whatsappStatus?.isConnected ? 'bg-green-100' : 'bg-red-100'
+                                }`}>
                                 <span className="text-xl">
                                     {whatsappStatus?.isConnected ? '✅' : '❌'}
                                 </span>
@@ -707,11 +713,10 @@ export default function Home() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as TabType)}
-                                    className={`flex-1 py-6 px-4 text-center font-semibold text-sm transition-all duration-200 relative ${
-                                        activeTab === tab.id
+                                    className={`flex-1 py-6 px-4 text-center font-semibold text-sm transition-all duration-200 relative ${activeTab === tab.id
                                             ? 'text-blue-600 bg-blue-50'
                                             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex flex-col items-center space-y-2">
                                         <span className="text-2xl">{tab.icon}</span>
@@ -737,6 +742,7 @@ export default function Home() {
                             onReset={resetWhatsApp}
                             onGenerateQR={generateNewQR}
                             onRefreshClient={refreshClient}
+                            currentUser={authState.user}
                         />
                     )}
 
@@ -863,7 +869,7 @@ export default function Home() {
                                             else if (log.includes('✅')) className += 'text-green-400';
                                             else if (log.includes('🎉')) className += 'text-blue-400';
                                             else className += 'text-gray-300';
-                                            
+
                                             return (
                                                 <div key={index} className={className}>
                                                     {log}
@@ -915,15 +921,15 @@ export default function Home() {
             </div>
 
             {/* Sending Progress Modal */}
-                    <SendingProgressModal
-          isOpen={showSendingModal}
-          progress={sendingProgress}
-          currentIndex={currentSendingIndex}
-          totalContacts={filteredContacts.length}
-          onClose={closeSendingModal}
-          results={results}
-          sessionId={authState.user?.whatsappSessionId}
-        />
+            <SendingProgressModal
+                isOpen={showSendingModal}
+                progress={sendingProgress}
+                currentIndex={currentSendingIndex}
+                totalContacts={filteredContacts.length}
+                onClose={closeSendingModal}
+                results={results}
+                sessionId={authState.user?.whatsappSessionId}
+            />
         </div>
     );
 }

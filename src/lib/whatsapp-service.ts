@@ -622,35 +622,43 @@ export class WhatsAppService {
         throw new Error('Cliente no está conectado para verificar número');
       }
 
-      const formattedPhone = phone.includes('@c.us') ? phone : `${phone}@c.us`;
+      // Limpiar el número de teléfono
+      let cleanPhone = phone.replace(/\D/g, '');
+      
+      // Validaciones básicas del número
+      if (!cleanPhone || cleanPhone.length < 10) {
+        console.log(`❌ [${this.sessionId}] Número ${phone} demasiado corto o inválido`);
+        return false;
+      }
+      
+      // Verificar patrones de números claramente inválidos
+      if (cleanPhone.match(/^(0{10,}|1{10,}|2{10,}|3{10,}|4{10,}|5{10,}|6{10,}|7{10,}|8{10,}|9{10,})$/)) {
+        console.log(`❌ [${this.sessionId}] Número ${phone} es un patrón repetitivo inválido`);
+        return false;
+      }
+      
+      // Verificar números colombianos específicos que sabemos son inválidos
+      if (cleanPhone === '3000000000' || cleanPhone === '65787423123') {
+        console.log(`❌ [${this.sessionId}] Número ${phone} está en lista de números inválidos conocidos`);
+        return false;
+      }
       
       try {
-        // Intentar obtener información del chat para verificar si existe
-        const chat = await this.client.getChatById(formattedPhone);
+        // Usar getNumberId que es más preciso para verificar si el número está registrado
+        const numberId = await this.client.getNumberId(cleanPhone);
         
-        // Verificar si el chat existe y tiene información válida
-        const isValid = Boolean(chat && chat.id && chat.id.user);
-        
-        console.log(`🔍 [${this.sessionId}] Verificación de número ${phone}: ${isValid ? 'VÁLIDO' : 'NO VÁLIDO'}`);
-        
-        if (isValid) {
-          console.log(`✅ [${this.sessionId}] Número ${phone} verificado como válido`);
+        if (numberId && numberId.user) {
+          console.log(`✅ [${this.sessionId}] Número ${phone} verificado como VÁLIDO en WhatsApp`);
+          return true;
         } else {
-          console.log(`❌ [${this.sessionId}] Número ${phone} verificado como NO válido`);
-        }
-        return isValid;
-      } catch (chatError: any) {
-        // Si el error indica que el número no existe, es inválido
-        const errorMessage = chatError.message || '';
-        if (errorMessage.includes('not-found') || 
-            errorMessage.includes('not-authorized') || 
-            errorMessage.includes('invalid') ||
-            errorMessage.includes('no existe')) {
-          console.log(`❌ [${this.sessionId}] Número ${phone} NO existe en WhatsApp`);
+          console.log(`❌ [${this.sessionId}] Número ${phone} NO está registrado en WhatsApp`);
           return false;
         }
+      } catch (numberError: any) {
+        const errorMessage = numberError.message || '';
+        console.log(`❌ [${this.sessionId}] Error verificando número ${phone}: ${errorMessage}`);
         
-        console.log(`⚠️ [${this.sessionId}] Error verificando número ${phone}:`, chatError.message);
+        // Si hay error al verificar, considerarlo como no válido
         return false;
       }
     } catch (error) {
@@ -982,4 +990,4 @@ export class WhatsAppService {
       console.log('⚠️ Error en notifyConnectionChange:', error);
     }
   }
-} 
+}

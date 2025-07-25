@@ -39,7 +39,7 @@ export enum SheetType {
 
 export interface SendResult {
   contactId: string;
-  status: 'success' | 'error' | 'invalid_number';
+  status: 'success' | 'error' | 'invalid_number' | 'verifying_whatsapp' | 'has_whatsapp';
   error?: string;
   phone?: string;
 }
@@ -48,6 +48,7 @@ export interface SendResults {
   successCount: number;
   errorCount: number;
   invalidNumbersCount: number;
+  verifiedWhatsappCount: number;
   invalidNumbers: string[];
   results: SendResult[];
   useTemplates?: boolean;

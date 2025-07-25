@@ -56,15 +56,16 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
         
-        // Inicializar progreso
+        // Inicializar progreso con lista de contactos
         console.log(`📊 [${sessionId}] Inicializando progreso para ${contacts.length} contactos...`);
-        SendingProgressManager.initializeProgress(sessionId, contacts.length);
-        console.log(`📊 [${sessionId}] Progreso inicializado correctamente`);
+        SendingProgressManager.initializeProgress(sessionId, contacts.length, contacts);
+        console.log(`📊 [${sessionId}] Progreso inicializado correctamente con todos los contactos en estado 'pending'`);
         
         const results: any[] = [];
         let successCount = 0;
         let errorCount = 0;
         let invalidNumbersCount = 0;
+        let verifiedWhatsappCount = 0;
         let invalidNumbers: string[] = [];
 
         console.log(`🚀 Iniciando envío secuencial a ${contacts.length} contactos`);
@@ -139,12 +140,13 @@ export async function POST(request: Request) {
                             phone: contact.phone
                         });
                         
-                        // Actualizar progreso
+                        // Actualizar progreso directamente como sin WhatsApp
                         SendingProgressManager.updateProgress(sessionId, contact.id, `${contact.name} ${contact.lastName}`.trim(), contact.phone, 'invalid_number', 'Número no registrado en WhatsApp');
                         
                         continue; // Continuar con el siguiente contacto
                     }
                     console.log(`✅ [${sessionId}] Número válido: ${contact.phone}`);
+                    
                 } catch (chatError: any) {
                     const errorMessage = chatError.message || '';
                     
@@ -232,10 +234,14 @@ export async function POST(request: Request) {
 
             // Actualizar progreso después de cada mensaje
             console.log(`📊 Progreso: ${i + 1}/${contacts.length} mensajes procesados`);
-            console.log(`📈 Estadísticas actuales: ✅ ${successCount} exitosos | ❌ ${errorCount} fallidos | ⚠️ ${invalidNumbersCount} inválidos`);
+            console.log(`📈 Estadísticas actuales: ✅ ${successCount} exitosos | ❌ ${errorCount} fallidos | ⚠️ ${invalidNumbersCount} inválidos | 📱 ${verifiedWhatsappCount} con WhatsApp`);
         }
 
-        console.log(`🎉 Envío completado: ${successCount} exitosos, ${errorCount} fallidos, ${invalidNumbersCount} números inválidos`);
+        console.log(`🎉 Envío completado: ${successCount} exitosos, ${errorCount} fallidos, ${invalidNumbersCount} números inválidos, ${verifiedWhatsappCount} con WhatsApp`);
+        
+        // Marcar progreso como completado para que el modal pueda mostrar los resultados finales
+        SendingProgressManager.markAsComplete(sessionId);
+        console.log(`📊 [${sessionId}] Progreso marcado como completado y disponible para consulta`);
 
         return NextResponse.json({
             success: true,
@@ -244,6 +250,7 @@ export async function POST(request: Request) {
                 successCount,
                 errorCount,
                 invalidNumbersCount,
+                verifiedWhatsappCount,
                 invalidNumbers,
                 total: contacts.length,
                 useTemplates
@@ -257,4 +264,4 @@ export async function POST(request: Request) {
             error: error instanceof Error ? error.message : 'Error desconocido'
         }, { status: 500 });
     }
-} 
+}

@@ -22,6 +22,11 @@ export async function GET(request: Request) {
             }, { status: 404 });
         }
         
+        // Añadir cabeceras para mejorar el rendimiento
+        const headers = new Headers();
+        headers.append('Cache-Control', 'no-store');
+        headers.append('Content-Type', 'application/json');
+        
         console.log(`✅ [${sessionId}] Progreso devuelto:`, {
             currentIndex: progress.currentIndex,
             totalContacts: progress.totalContacts,
@@ -34,7 +39,7 @@ export async function GET(request: Request) {
         return NextResponse.json({
             success: true,
             data: progress
-        });
+        }, { headers });
         
     } catch (error) {
         console.error('Error obteniendo progreso:', error);
@@ -118,4 +123,4 @@ export async function DELETE(request: Request) {
             error: 'Error interno del servidor'
         }, { status: 500 });
     }
-} 
+}

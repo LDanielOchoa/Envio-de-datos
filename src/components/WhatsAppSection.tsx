@@ -1,5 +1,5 @@
 import React from 'react';
-import { WhatsAppStatus } from '../types';
+import { WhatsAppStatus, User } from '../types';
 
 interface WhatsAppSectionProps {
   whatsappStatus: WhatsAppStatus | null;
@@ -9,6 +9,7 @@ interface WhatsAppSectionProps {
   onReset: () => void;
   onGenerateQR: () => void;
   onRefreshClient: () => void;
+  currentUser: User | null;
 }
 
 export default function WhatsAppSection({
@@ -18,7 +19,8 @@ export default function WhatsAppSection({
   onForceRefresh,
   onReset,
   onGenerateQR,
-  onRefreshClient
+  onRefreshClient,
+  currentUser
 }: WhatsAppSectionProps) {
   return (
     <div className="space-y-8">
@@ -31,6 +33,12 @@ export default function WhatsAppSection({
         <p className="text-gray-600 max-w-2xl mx-auto">
           Conecta tu WhatsApp para poder enviar mensajes oficiales de Colombia Productiva
         </p>
+        {currentUser && (
+          <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+            <span className="mr-1">👤</span>
+            Sesión personal: {currentUser.name}
+          </div>
+        )}
       </div>
 
       {/* Status Cards */}

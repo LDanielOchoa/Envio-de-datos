@@ -20,6 +20,8 @@ Desde Colombia Productiva en Alianza con la Universidad Nacional de Colombia, lo
 Si estás interesado(a), puedes inscribirte en este link
 https://bit.ly/cursofabricas
 
+📁 Docuemnto en pdf se debe descargar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+
 Para mayor información contactar: karen.mendez@colombiaproductiva.com; andiazce@unal.edu.co`
   },
   {

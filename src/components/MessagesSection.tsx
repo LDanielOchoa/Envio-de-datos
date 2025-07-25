@@ -352,11 +352,11 @@ export default function MessagesSection({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 text-center">
                     <p className="text-3xl font-bold text-green-600 mb-1">{results.successCount}</p>
-                    <p className="text-sm font-medium text-green-800">Exitosos</p>
+                    <p className="text-sm font-medium text-green-800">Enviados</p>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200 text-center">
-                    <p className="text-3xl font-bold text-red-600 mb-1">{results.errorCount}</p>
-                    <p className="text-sm font-medium text-red-800">Fallidos</p>
+                    <p className="text-3xl font-bold text-red-600 mb-1">{results.errorCount + results.invalidNumbersCount}</p>
+                    <p className="text-sm font-medium text-red-800">Sin WhatsApp</p>
                   </div>
                 </div>
 
@@ -365,44 +365,94 @@ export default function MessagesSection({
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">Tasa de Éxito</span>
                     <span className="text-sm font-bold text-gray-900">
-                      {Math.round((results.successCount / (results.successCount + results.errorCount)) * 100)}%
+                      {Math.round((results.successCount / (results.successCount + results.errorCount + results.invalidNumbersCount)) * 100)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-500"
                       style={{ 
-                        width: `${(results.successCount / (results.successCount + results.errorCount)) * 100}%` 
+                        width: `${(results.successCount / (results.successCount + results.errorCount + results.invalidNumbersCount)) * 100}%` 
                       }}
                     ></div>
                   </div>
                 </div>
 
+                {/* Download Excel Button */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/whatsapp/export-results', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ results })
+                        });
+                        
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.style.display = 'none';
+                          a.href = url;
+                          a.download = `resultados-envio-${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.xlsx`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                        } else {
+                          console.error('Error al descargar el archivo');
+                        }
+                      } catch (error) {
+                        console.error('Error al descargar:', error);
+                      }
+                    }}
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <span className="mr-2">📥</span>
+                    Descargar Resultados en Excel
+                  </button>
+                </div>
+
                 {/* Results List */}
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   <h4 className="font-medium text-gray-900 mb-3">Detalle de Envíos</h4>
-                  {results.results.slice(0, 8).map((result, index) => (
-                    <div 
-                      key={index} 
-                      className={`p-3 rounded-xl text-sm border ${
-                        result.status === 'success' 
-                          ? 'bg-green-50 text-green-800 border-green-200' 
-                          : 'bg-red-50 text-red-800 border-red-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">
-                          {result.status === 'success' ? '✅' : '❌'} {result.contactId}
-                        </span>
-                        <span className="text-xs">
-                          {result.status === 'success' ? 'Enviado' : 'Error'}
-                        </span>
+                  {results.results.slice(0, 8).map((result, index) => {
+                    let bgColor = 'bg-gray-50 text-gray-800 border-gray-200';
+                    let statusIcon = '⏳';
+                    let statusText = 'Pendiente';
+                    
+                    if (result.status === 'success') {
+                      bgColor = 'bg-green-50 text-green-800 border-green-200';
+                      statusIcon = '✅';
+                      statusText = 'Enviado';
+                    } else {
+                      bgColor = 'bg-red-50 text-red-800 border-red-200';
+                      statusIcon = '❌';
+                      statusText = 'Sin WhatsApp';
+                    }
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`p-3 rounded-xl text-sm border ${bgColor}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">
+                            {statusIcon} {result.contactId}
+                          </span>
+                          <span className="text-xs">
+                            {statusText}
+                          </span>
+                        </div>
+                        {result.error && (
+                          <p className="text-xs mt-1 opacity-75">{result.error}</p>
+                        )}
                       </div>
-                      {result.error && (
-                        <p className="text-xs mt-1 opacity-75">{result.error}</p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                   
                   {results.results.length > 8 && (
                     <div className="text-center py-2 border-t border-gray-200">
