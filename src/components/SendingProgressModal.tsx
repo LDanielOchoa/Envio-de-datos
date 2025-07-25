@@ -103,7 +103,7 @@ export default function SendingProgressModal({
               const recentResults = data.data.results.filter((r: { status: string }) => r.status !== 'pending').slice(-3);
               if (recentResults.length > 0) {
                 console.log(`📋 [Modal] Últimos contactos procesados:`);
-                recentResults.forEach(result => {
+                recentResults.forEach((result: { status: string; contactName: string; phone: string }) => {
                   const statusEmoji = result.status === 'success' ? '✅' : '❌';
                   const statusText = result.status === 'success' ? 'ENVIADO' : 'SIN WHATSAPP';
                   const contactLog = `${statusEmoji} ${result.contactName} (${result.phone}) - ${statusText}`;
