@@ -15,6 +15,7 @@ interface MessagesSectionProps {
   onTestSend: () => void;
   onSendMessages: () => void;
   onFilterByTemplate?: (templateGroup: string | null) => void;
+  onShowSendingProgress?: () => void;
 }
 
 export default function MessagesSection({
@@ -27,7 +28,8 @@ export default function MessagesSection({
   authState,
   onTestSend,
   onSendMessages,
-  onFilterByTemplate
+  onFilterByTemplate,
+  onShowSendingProgress
 }: MessagesSectionProps) {
   const [selectedTemplate, setSelectedTemplate] = React.useState<string>('default');
   const [showTemplatePreview, setShowTemplatePreview] = React.useState(false);
@@ -284,30 +286,62 @@ export default function MessagesSection({
               })()}
 
               <button
-                onClick={onSendMessages}
-                disabled={loading || filteredContacts.length === 0 || !message.trim() || !whatsappStatus?.isConnected}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-4 rounded-xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                onClick={(loading || results) && onShowSendingProgress ? onShowSendingProgress : onSendMessages}
+                disabled={!loading && !results && (filteredContacts.length === 0 || !message.trim() || !whatsappStatus?.isConnected)}
+                className={`w-full py-4 px-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  (loading || results) && onShowSendingProgress 
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
+                    : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
+                }`}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Enviando mensajes...
+                    {onShowSendingProgress ? "Ver Progreso del Envío Actual" : "Enviando mensajes..."}
+                  </span>
+                ) : results && onShowSendingProgress ? (
+                  <span className="flex items-center justify-center">
+                    <span className="mr-2">📊</span>
+                    Ver Progreso del Último Envío
                   </span>
                 ) : (
-                  `📤 Enviar a ${filteredContacts.length} contactos${(() => {
-                    const template = messageTemplates.find(t => t.id === selectedTemplate);
-                    return template && template.group ? ` (Grupo ${template.group})` : '';
-                  })()}`
+                  <span className="flex flex-col items-center justify-center">
+                    <span className="flex items-center">
+                      <span className="mr-2">📤</span>
+                      {`Enviar a ${filteredContacts.length} contactos${(() => {
+                        const template = messageTemplates.find(t => t.id === selectedTemplate);
+                        return template && template.group ? ` (Grupo ${template.group})` : '';
+                      })()}`}
+                    </span>
+                    <div className="mt-2 bg-green-100 border border-green-300 text-green-800 px-3 py-1 rounded-lg shadow-sm">
+                      <span className="flex items-center justify-center text-xs font-bold">
+                        <span className="mr-1 animate-pulse">⚡</span>
+                        Después del envío cambiará a "Ver Progreso"
+                      </span>
+                    </div>
+                  </span>
                 )}
               </button>
             </div>
 
             {/* Message Status */}
             <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-              <h4 className="font-semibold text-green-900 mb-2 flex items-center">
-                <span className="mr-2">✅</span>
-                Estado del Mensaje
-              </h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-green-900 flex items-center">
+                  <span className="mr-2">✅</span>
+                  Estado del Mensaje
+                </h4>
+                {/* Botón de progreso en el estado del mensaje */}
+                {results && onShowSendingProgress && (
+                  <button
+                    onClick={onShowSendingProgress}
+                    className="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                  >
+                    <span className="mr-1">📊</span>
+                    Ver Progreso
+                  </button>
+                )}
+              </div>
               <div className="space-y-1 text-sm text-green-800">
                 <div className="flex items-center">
                   <span className="mr-2">📝</span>
@@ -331,6 +365,13 @@ export default function MessagesSection({
                     return 'cargados';
                   })()}</span>
                 </div>
+                {/* Indicador de resultados disponibles */}
+                {results && (
+                  <div className="flex items-center">
+                    <span className="mr-2">📊</span>
+                    <span>Último envío: {results.successCount} enviados, {results.errorCount + results.invalidNumbersCount} sin WhatsApp</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -378,8 +419,27 @@ export default function MessagesSection({
                   </div>
                 </div>
 
-                {/* Download Excel Button */}
-                <div className="flex justify-center">
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-4">
+                  {/* Show Progress Button */}
+                  {results && onShowSendingProgress && (
+                    <button
+                      onClick={onShowSendingProgress}
+                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                      <span className="mr-2">📊</span>
+                      Ver Progreso Detallado
+                    </button>
+                  )}
+                  
+                  {/* Mensaje informativo si no hay resultados */}
+                  {!results && (
+                    <div className="text-center text-gray-500 text-sm italic">
+                      💡 El botón "Ver Progreso Detallado" aparecerá aquí después de enviar mensajes
+                    </div>
+                  )}
+                  
+                  {/* Download Excel Button */}
                   <button
                     onClick={async () => {
                       try {

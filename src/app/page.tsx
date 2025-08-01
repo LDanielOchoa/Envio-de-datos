@@ -572,6 +572,10 @@ export default function Home() {
         setCurrentSendingIndex(0);
     };
 
+    const openSendingModal = () => {
+        setShowSendingModal(true);
+    };
+
     // Effects
     useEffect(() => {
         if (authState.isAuthenticated && authState.user) {
@@ -769,6 +773,7 @@ export default function Home() {
                             onTestSend={testSend}
                             onSendMessages={sendMessages}
                             onFilterByTemplate={handleFilterByTemplate}
+                            onShowSendingProgress={openSendingModal}
                         />
                     )}
 
