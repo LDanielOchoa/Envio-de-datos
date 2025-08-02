@@ -254,7 +254,7 @@ export default function Home() {
     };
 
     // Contacts Functions
-    const loadContacts = async (file: File) => {
+    const loadContacts = async (file: File, sheetName?: string) => {
         if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
             addLog('❌ El archivo debe ser un Excel (.xlsx o .xls)');
             return;
@@ -262,10 +262,16 @@ export default function Home() {
 
         setLoading(true);
         addLog(`📁 [INDIVIDUAL] Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        if (sheetName) {
+            addLog(`📋 [INDIVIDUAL] Hoja seleccionada: ${sheetName}`);
+        }
 
         try {
             const formData = new FormData();
             formData.append('file', file);
+            if (sheetName) {
+                formData.append('selectedSheet', sheetName);
+            }
 
             addLog('📤 [INDIVIDUAL] Enviando archivo al servidor...');
             const response = await fetch('/api/sheets/contacts', {
@@ -294,7 +300,7 @@ export default function Home() {
         }
     };
 
-    const loadGroupContacts = async (file: File) => {
+    const loadGroupContacts = async (file: File, sheetName?: string) => {
         if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
             addLog('❌ El archivo debe ser un Excel (.xlsx o .xls)');
             return;
@@ -302,11 +308,17 @@ export default function Home() {
 
         setLoading(true);
         addLog(`📁 [GRUPOS] Archivo seleccionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        if (sheetName) {
+            addLog(`📋 [GRUPOS] Hoja seleccionada: ${sheetName}`);
+        }
 
         try {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('sheetType', 'g29_30'); // Indicar que es carga por grupos
+            if (sheetName) {
+                formData.append('selectedSheet', sheetName);
+            }
 
             addLog('📤 [GRUPOS] Enviando archivo al servidor...');
             const response = await fetch('/api/sheets/contacts', {

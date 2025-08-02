@@ -18,8 +18,10 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const sheetType = formData.get('sheetType') as string || 'unitario';
+        const selectedSheet = formData.get('selectedSheet') as string;
         
         console.log(`📊 Tipo de hoja solicitada: ${sheetType}`);
+        console.log(`📋 Hoja seleccionada: ${selectedSheet}`);
         
         if (!file) {
             console.log('❌ No se proporcionó ningún archivo');
@@ -48,14 +50,22 @@ export async function POST(request: Request) {
         console.log('📊 Leyendo archivo Excel...');
         const workbook = read(arrayBuffer);
         
-        // Determinar el nombre de la hoja según el tipo
-        let sheetName = 'Contacto Col-Productiva07-07-25'; // Hoja por defecto
+        // Determinar el nombre de la hoja
+        let sheetName;
         
-        if (sheetType === 'g29_30') {
-            sheetName = 'G29&30'; // Hoja para grupos 29 y 30
-            console.log(`📑 Modo GRUPOS activado, buscando hoja: ${sheetName}`);
+        if (selectedSheet) {
+            // Usar la hoja seleccionada por el usuario
+            sheetName = selectedSheet;
+            console.log(`📑 Usando hoja seleccionada: ${sheetName}`);
         } else {
-            console.log(`📑 Modo UNITARIO, buscando hoja: ${sheetName}`);
+            // Usar hojas por defecto si no se especifica
+            if (sheetType === 'g29_30') {
+                sheetName = 'G29&30'; // Hoja por defecto para grupos
+                console.log(`📑 Modo GRUPOS (por defecto), buscando hoja: ${sheetName}`);
+            } else {
+                sheetName = 'Contacto Col-Productiva07-07-25'; // Hoja por defecto unitaria
+                console.log(`📑 Modo UNITARIO (por defecto), buscando hoja: ${sheetName}`);
+            }
         }
         
         const worksheet = workbook.Sheets[sheetName];
@@ -256,26 +266,72 @@ function processGroupContacts(data: any[]) {
             console.log(`📊 [GRUPOS] Procesando fila ${rowIndex} de ${data.length} (${contacts.length} contactos válidos encontrados)`);
         }
         
-        // Verificar si debemos incluir este contacto
-        // Si tenemos la columna "Resultado Contacto", solo incluir "Sin contactar"
-        // Si no tenemos la columna, incluir todos
-        const incluirContacto = resultadoContactoIndex === -1 || resultadoContacto.toLowerCase() === 'sin contactar';
+        // Log para debug: mostrar algunos valores de ejemplo
+        if (rowIndex <= 10) {
+            console.log(`🔍 [GRUPOS] Fila ${rowIndex} - Nombres: "${nombres}", Apellidos: "${apellidos}", Teléfono: "${phone}", Grupo: "${group}", Resultado: "${resultadoContacto}"`);
+            console.log(`🔍 [GRUPOS] Fila ${rowIndex} - Datos raw: [${row.map(cell => `"${cell}"`).join(', ')}]`);
+        }
         
-        if (incluirContacto) {
+        // Verificar si debemos incluir este contacto
+        // Si tenemos la columna "Resultado Contacto", solo incluir "Sin contactar" o valores vacíos
+        // Si no tenemos la columna, incluir todos
+        const resultadoLower = resultadoContacto.toLowerCase();
+        const incluirContacto = resultadoContactoIndex === -1 || 
+                               resultadoLower === 'sin contactar' || 
+                               resultadoLower === '' || 
+                               resultadoLower === 'null' || 
+                               resultadoLower === 'undefined';
+        
+        // Verificar que tengamos datos mínimos válidos
+        const tieneNombre = nombres && nombres.length > 0;
+        const tieneApellido = apellidos && apellidos.length > 0;
+        const tieneTelefono = phone && phone.length > 0;
+        
+        // Log detallado de validaciones para las primeras filas
+        if (rowIndex <= 10) {
+            console.log(`🔍 [GRUPOS] Fila ${rowIndex} - Validaciones:`);
+            console.log(`   - incluirContacto: ${incluirContacto} (resultadoLower: "${resultadoLower}")`);
+            console.log(`   - tieneNombre: ${tieneNombre} (nombres: "${nombres}")`);
+            console.log(`   - tieneApellido: ${tieneApellido} (apellidos: "${apellidos}")`);
+            console.log(`   - tieneTelefono: ${tieneTelefono} (phone: "${phone}")`);
+        }
+        
+        if (incluirContacto && tieneNombre && tieneTelefono) {
             // Formatear teléfono
             let formattedPhone = phone.replace(/\D/g, '');
             if (!formattedPhone.startsWith('57')) {
                 formattedPhone = '57' + formattedPhone;
             }
             
-            contacts.push({
-                id: `contact_${rowIndex}`,
-                name: nombres,
-                lastName: apellidos,
-                phone: formattedPhone,
-                status: 'pending',
-                group: group
-            });
+            // Verificar que el teléfono tenga una longitud válida
+            if (formattedPhone.length >= 10) {
+                contacts.push({
+                    id: `contact_${rowIndex}`,
+                    name: nombres,
+                    lastName: apellidos || '',
+                    phone: formattedPhone,
+                    status: 'pending',
+                    group: group
+                });
+                if (rowIndex <= 10) {
+                    console.log(`✅ [GRUPOS] Fila ${rowIndex}: Contacto agregado - ${nombres} ${apellidos} (${formattedPhone})`);
+                }
+            } else {
+                console.log(`⚠️ [GRUPOS] Fila ${rowIndex}: Teléfono inválido "${phone}" -> "${formattedPhone}" (longitud: ${formattedPhone.length})`);
+            }
+        } else {
+            if (rowIndex <= 10) {
+                console.log(`⚠️ [GRUPOS] Fila ${rowIndex}: Excluido - incluirContacto: ${incluirContacto}, tieneNombre: ${tieneNombre}, tieneTelefono: ${tieneTelefono}`);
+                if (!incluirContacto) {
+                    console.log(`   -> Excluido por resultado contacto: "${resultadoContacto}" (debe ser "sin contactar" o vacío)`);
+                }
+                if (!tieneNombre) {
+                    console.log(`   -> Excluido por falta de nombre: "${nombres}"`);
+                }
+                if (!tieneTelefono) {
+                    console.log(`   -> Excluido por falta de teléfono: "${phone}"`);
+                }
+            }
         }
         
         // Limitar a 500 contactos para evitar problemas de memoria

@@ -26,80 +26,73 @@ Los cursos se desarrollarán los martes y jueves de 7:00 am a 9:00 am o de 5:00 
 El curso es completamente gratuito, no tendrá costo solo para aquellos estudiantes que finalicen el curso. En caso de iniciar y no finalizar el curso habrá una penalidad de $300.000. El curso contempla temáticas como: Nociones y pilares de la sostenibilidad en el sector productivo, Agenda de desarrollo sostenible ODS y su conexión con el sector productivo, Tendencias, prácticas y experiencias de sostenibilidad, Crisis climática, Estrategia de economía circular, entre otros.`
   },
   {
-    id: 'grupo_29',
-    name: 'Mensaje Grupo 29',
-    group: '29',
-    content: `Estimado/a {nombre_apellidos}
+    id: 'grupo_31',
+    name: 'Mensaje Grupo 31',
+    group: '31',
+    content: `Estimado/a {nombre_apellidos},
 
-Soy XX de la Universidad Nacional de Colombia. 
+Soy Cyndi Guzman de la Universidad Nacional de Colombia.
 Me comunico para ofrecer el curso virtual "Gestión de la Sostenibilidad en las Empresas", que podrá realizar sin costo gracias a la alianza entre Colombia Productiva y la Universidad Nacional.
-Este curso es completamente gratuito, gracias a la alianza entre Colombia Productiva y la Universidad Nacional de Colombia.
-Para inscribirte, por favor seguir estos tres (3) pasos:
 
+Para inscribirte, por favor seguir estos Tres (3) pasos:
 1️⃣ Registrarse en la plataforma Hermes a través del siguiente enlace:
-👉 Grupo 29
+👉 Grupo 31
 LINK REGISTRO SISTEMA HERMES:
-https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56222&cs=1dBDBZ-sKUll75rat53uCq_cI9b8
-
-2️⃣Diligencia los documentos adjuntos (formatos requeridos). 
-📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
-📁 Docuemnto en pdf se debe descargar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
-
-3⃣ Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
-
-📅 Inicio del curso: Martes 15 de Julio
-🗓 Finaliza: jueves 12 de agosto 2025
-📌 Horario: martes y Jueves de 7:00 a.m. a 9:00 a.m.
-📍 Grupo 29
-
-📢 Una vez recibida y procesada su documentación, le daremos la bienvenida al curso (Grupo 29).
-
-🔹 Importante: No es necesario completar los campos de número de pagaré y factura.
-
-¡Esperamos contar con su participación, en esta gran oportunidad de aprendizaje!
-
-Cordialmente,
-Nombre Cyndi Guzman Gomez 
-Gestor de Beneficiarios – Proyecto Colombia Productiva
-(Universidad Nacional y Fiducoldex)
-El curso inicia hoy a las 07:00 am
-Me informa si está interesada para compartir el link y en la tarde se haría el proceso de registro para que no pierda la clase de hoy.`
-  },
-  {
-    id: 'grupo_30',
-    name: 'Mensaje Grupo 30',
-    group: '30',
-    content: `Estimado/a {nombre_apellidos}
-Soy XX de la Universidad Nacional de Colombia. 
-Me comunico para ofrecer el curso virtual "Gestión de la Sostenibilidad en las Empresas", que podrá realizar sin costo gracias a la alianza entre Colombia Productiva y la Universidad Nacional.
-Este curso es completamente gratuito, gracias a la alianza entre Colombia Productiva y la Universidad Nacional de Colombia.
-Te espero para que aproveches esta oportunidad y avances en tu formación Para inscribirte, por favor seguir estos tres (3) pasos:
-
-1️⃣Registrarse en la plataforma Hermes a través del siguiente enlace:
-👉 Grupo 30
-LINK REGISTRO SISTEMA HERMES:
-https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56223&cs=1FczQeumzeI-0ysQHywJi_TMWQWo
+https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56233&cs=1wZ8S6qBhPGbowkBJWEPzqD5Ukyw
 
 2️⃣Diligencia los documentos adjuntos (formatos requeridos).
-📄 Formatos requeridos: https://forms.gle/7wuVd9bdXomVFh2v5
-📁 Docuemnto en pdf se debe descargar para el diligenciamiento del proceso de registro: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+Por favor, subir el archivo al link parte inferior o envíalo al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp):
+https://forms.gle/qfK6EtTQaYtVGu1E7
+📁 Documentos requeridos: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
 
-3⃣Envía el documento completo en PDF (Formatos Requeridos) como archivo adjunto al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp).
 
-📅 Inicio del curso: martes 15 de julio
-🗓 Finaliza: Jueves 12 de agosto  2025
-📌 Horario: Martes y Jueves de 5:00 p.m. a 7:00 p.m.
-📍 Grupo 30
+📅 Inicio del curso: Jueves 14 de Agosto
+🗓 Finaliza: Martes 11 de Septiembre 2025
+📌 Horario: Martes y Jueves de 7:00 a.m. a 9:00 a.m.
+📍 Grupo 31
 
-📢 Una vez recibida y procesada su documentación, le daremos la bienvenida al curso (Grupo 30).
-
-🔹 Importante: No es necesario completar los campos de número de pagaré y factura.
+📢 Una vez recibida y procesada su documentación, le daremos la bienvenida al curso (Grupo 31).
 
 ¡Esperamos contar con su participación, en esta gran oportunidad de aprendizaje!
 
 Cordialmente,
-Cyndi Guzman 
-Gestor de Beneficiarios – Proyecto Colombia Productiva
+Cyndi Guzman
+Lider Gestor de Beneficiarios – Proyecto Colombia Productiva
+(Universidad Nacional y Fiducoldex)`
+  },
+  {
+    id: 'grupo_32',
+    name: 'Mensaje Grupo 32',
+    group: '32',
+    content: `Estimado/a {nombre_apellidos},
+
+Soy Cyndy Guzman de la Universidad Nacional de Colombia.
+Me comunico para ofrecer el curso virtual "Gestión de la Sostenibilidad en las Empresas", que podrá realizar sin costo gracias a la alianza entre Colombia Productiva y la Universidad Nacional.
+
+Para inscribirte, por favor seguir estos Tres (3) pasos:
+1️⃣ Registrarse en la plataforma Hermes a través del siguiente enlace:
+👉 Grupo 32
+LINK REGISTRO SISTEMA HERMES:
+https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:59423&cs=1RmnfVJkb26ITOlIhBnxZDQ63aA4
+
+2️⃣Diligencia los documentos adjuntos (formatos requeridos).
+Por favor, subir el archivo al link parte inferior o envíalo al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp):
+https://forms.gle/7WE6pjn24c5tog4F7
+📁 Documentos requeridos: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+
+
+📅 Inicio del curso: Jueves 14 de Agosto
+🗓 Finaliza: Martes 11 de Septiembre 2025
+📌 Horario: Martes y Jueves de 5:00 p.m. a 7:00 p.m.
+📍 Grupo 32
+
+📢 Una vez recibida y procesada su documentación, le daremos la bienvenida al curso (Grupo 32).
+
+¡Esperamos contar con su participación, en esta gran oportunidad de aprendizaje!
+
+Cordialmente,
+Cyndi Guzman
+Lider Gestor de Beneficiarios – Proyecto Colombia Productiva
 (Universidad Nacional y Fiducoldex)`
   }
 ];

@@ -608,8 +608,11 @@ export class WhatsAppService {
     }
   }
 
-  // Método para verificar si un número existe en WhatsApp
+  // Método para verificar si un número existe en WhatsApp con manejo de rate limiting
   async isNumberValid(phone: string): Promise<boolean> {
+    const MAX_RETRIES = 3;
+    const BASE_DELAY = 1000; // 1 segundo base
+    
     try {
       if (!this.client) {
         console.log(`❌ [${this.sessionId}] No hay cliente disponible para verificar número`);
@@ -625,45 +628,95 @@ export class WhatsAppService {
       // Limpiar el número de teléfono
       let cleanPhone = phone.replace(/\D/g, '');
       
+      console.log(`🔧 [${this.sessionId}] Número original: ${phone}, limpio: ${cleanPhone}`);
+      
       // Validaciones básicas del número
-      if (!cleanPhone || cleanPhone.length < 10) {
-        console.log(`❌ [${this.sessionId}] Número ${phone} demasiado corto o inválido`);
+      if (!cleanPhone || cleanPhone.length < 8) { // Reducido de 10 a 8 para ser menos estricto
+        console.log(`❌ [${this.sessionId}] Número ${phone} demasiado corto o inválido (mín 8 dígitos)`);
         return false;
       }
       
-      // Verificar patrones de números claramente inválidos
-      if (cleanPhone.match(/^(0{10,}|1{10,}|2{10,}|3{10,}|4{10,}|5{10,}|6{10,}|7{10,}|8{10,}|9{10,})$/)) {
+      // Agregar código de país colombiano si no existe y el número parece colombiano
+      if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
+        cleanPhone = '57' + cleanPhone;
+        console.log(`🔧 [${this.sessionId}] Agregado código de país: ${cleanPhone}`);
+      }
+      
+      // Verificar patrones de números claramente inválidos (más flexible)
+      if (cleanPhone.match(/^(0{8,}|1{8,}|2{8,}|3{8,}|4{8,}|5{8,}|6{8,}|7{8,}|8{8,}|9{8,})$/)) {
         console.log(`❌ [${this.sessionId}] Número ${phone} es un patrón repetitivo inválido`);
         return false;
       }
       
       // Verificar números colombianos específicos que sabemos son inválidos
-      if (cleanPhone === '3000000000' || cleanPhone === '65787423123') {
+      if (cleanPhone === '573000000000' || cleanPhone === '3000000000' || cleanPhone === '65787423123') {
         console.log(`❌ [${this.sessionId}] Número ${phone} está en lista de números inválidos conocidos`);
         return false;
       }
       
-      try {
-        // Usar getNumberId que es más preciso para verificar si el número está registrado
-        const numberId = await this.client.getNumberId(cleanPhone);
-        
-        if (numberId && numberId.user) {
-          console.log(`✅ [${this.sessionId}] Número ${phone} verificado como VÁLIDO en WhatsApp`);
-          return true;
-        } else {
-          console.log(`❌ [${this.sessionId}] Número ${phone} NO está registrado en WhatsApp`);
-          return false;
+      // Implementar reintentos con backoff exponencial para manejar rate limiting
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          console.log(`🔍 [${this.sessionId}] Intento ${attempt}/${MAX_RETRIES} verificando número: ${cleanPhone}`);
+          
+          // Usar getNumberId que es más preciso para verificar si el número está registrado
+          const numberId = await this.client.getNumberId(cleanPhone);
+          
+          if (numberId && numberId.user) {
+            console.log(`✅ [${this.sessionId}] Número ${phone} verificado como VÁLIDO en WhatsApp`);
+            return true;
+          } else {
+            console.log(`❌ [${this.sessionId}] Número ${phone} NO está registrado en WhatsApp`);
+            return false;
+          }
+          
+        } catch (numberError: any) {
+          const errorMessage = numberError.message || '';
+          console.log(`⚠️ [${this.sessionId}] Error en intento ${attempt}: ${errorMessage}`);
+          
+          // Detectar errores de rate limiting
+          if (errorMessage.includes('rate') || 
+              errorMessage.includes('limit') || 
+              errorMessage.includes('too many') ||
+              errorMessage.includes('429') ||
+              errorMessage.includes('throttle')) {
+            
+            if (attempt < MAX_RETRIES) {
+              const delay = BASE_DELAY * Math.pow(2, attempt - 1); // Backoff exponencial
+              console.log(`⏳ [${this.sessionId}] Rate limiting detectado, esperando ${delay}ms antes del siguiente intento...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue; // Reintentar
+            } else {
+              console.log(`❌ [${this.sessionId}] Rate limiting persistente después de ${MAX_RETRIES} intentos`);
+              // En caso de rate limiting persistente, asumir que el número es válido
+              // para evitar falsos negativos
+              console.log(`⚠️ [${this.sessionId}] Asumiendo número ${phone} como VÁLIDO debido a rate limiting`);
+              return true;
+            }
+          }
+          
+          // Para otros errores, si es el último intento, marcar como inválido
+          if (attempt === MAX_RETRIES) {
+            console.log(`❌ [${this.sessionId}] Error final verificando número ${phone}: ${errorMessage}`);
+            return false;
+          }
+          
+          // Para otros errores, esperar un poco antes del siguiente intento
+          const delay = BASE_DELAY * attempt;
+          console.log(`⏳ [${this.sessionId}] Esperando ${delay}ms antes del siguiente intento...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
-      } catch (numberError: any) {
-        const errorMessage = numberError.message || '';
-        console.log(`❌ [${this.sessionId}] Error verificando número ${phone}: ${errorMessage}`);
-        
-        // Si hay error al verificar, considerarlo como no válido
-        return false;
       }
-    } catch (error) {
-      console.error(`❌ [${this.sessionId}] Error verificando número ${phone}:`, error);
+      
+      // Si llegamos aquí, algo salió mal
+      console.log(`❌ [${this.sessionId}] No se pudo verificar número ${phone} después de ${MAX_RETRIES} intentos`);
       return false;
+      
+    } catch (error) {
+      console.error(`❌ [${this.sessionId}] Error crítico verificando número ${phone}:`, error);
+      // En caso de error crítico, asumir válido para evitar bloquear el envío
+      console.log(`⚠️ [${this.sessionId}] Asumiendo número ${phone} como VÁLIDO debido a error crítico`);
+      return true;
     }
   }
 
