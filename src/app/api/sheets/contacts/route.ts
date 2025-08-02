@@ -273,14 +273,11 @@ function processGroupContacts(data: any[]) {
         }
         
         // Verificar si debemos incluir este contacto
-        // Si tenemos la columna "Resultado Contacto", solo incluir "Sin contactar" o valores vacíos
-        // Si no tenemos la columna, incluir todos
+        // SOLO incluir contactos con estado exacto "Sin contactar"
+        // NO incluir valores vacíos, null o undefined
         const resultadoLower = resultadoContacto.toLowerCase();
         const incluirContacto = resultadoContactoIndex === -1 || 
-                               resultadoLower === 'sin contactar' || 
-                               resultadoLower === '' || 
-                               resultadoLower === 'null' || 
-                               resultadoLower === 'undefined';
+                               resultadoLower === 'sin contactar';
         
         // Verificar que tengamos datos mínimos válidos
         const tieneNombre = nombres && nombres.length > 0;

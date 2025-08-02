@@ -80,7 +80,6 @@ Por favor, subir el archivo al link parte inferior o envíalo al correo dbarrera
 https://forms.gle/7WE6pjn24c5tog4F7
 📁 Documentos requeridos: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
 
-
 📅 Inicio del curso: Jueves 14 de Agosto
 🗓 Finaliza: Martes 11 de Septiembre 2025
 📌 Horario: Martes y Jueves de 5:00 p.m. a 7:00 p.m.
