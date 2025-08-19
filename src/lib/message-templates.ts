@@ -43,7 +43,7 @@ https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:56233&cs=1wZ8S6
 2️⃣Diligencia los documentos adjuntos (formatos requeridos).
 Por favor, subir el archivo al link parte inferior o envíalo al correo dbarrerapa@unal.edu.co o por este mismo medio (WhatsApp):
 https://forms.gle/qfK6EtTQaYtVGu1E7
-📁 Documentos requeridos: https://drive.google.com/file/d/1eg8aKCOm_nFHkXjufWEGzGojr18pmSsN/view?usp=sharing
+📁 Documentos requeridos: https://drive.google.com/file/d/18qPf-m5CGYt_WKt0s59RLyHkHM7-Fm_g/view?usp=sharing
 
 
 📅 Inicio del curso: Jueves 14 de Agosto
