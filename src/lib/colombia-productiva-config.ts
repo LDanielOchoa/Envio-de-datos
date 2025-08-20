@@ -30,6 +30,7 @@ export const getOfficialMessage = (): string => {
 Estimados(as) empresarios(as), de acuerdo al correo enviado para su participación en el Curso gratuito en Gestión de la Sostenibilidad Empresarial, gracias al Ministerio de comercio, Colombia Productiva y la Universidad Nacional de Colombia.
 
 👉 Si desean participar, pueden realizar su registro tambien  en línea en el siguiente enlace:
+https://drive.google.com/file/d/18qPf-m5CGYt_WKt0s59RLyHkHM7-Fm_g/view?usp=sharing 
 
 Formulario de Preinscripción Curso de Sostenibilidad Empresarial (Página 1 de 6).
 
