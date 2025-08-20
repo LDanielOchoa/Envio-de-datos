@@ -13,17 +13,17 @@ export const messageTemplates: MessageTemplate[] = [
   {
     id: 'default',
     name: 'Mensaje Oficial Colombia Productiva',
-    content: `Buenas Tardes, Bienvenidos a la preinscripción de "Curso de Gestión de Sostenibilidad de la empresa". Desde Colombia Productiva- Ministerio de comercio industria y turismos en Alianza con la Universidad Nacional de Colombia, los invitamos a participar en el curso virtual gratuito en Gestión de la Sostenibilidad en la empresa.
+    content: `📢 Invitación especial
+Estimados(as) empresarios(as), de acuerdo al correo enviado para su participación en el Curso gratuito en Gestión de la Sostenibilidad Empresarial, gracias al Ministerio de comercio, Colombia Productiva y la Universidad Nacional de Colombia.
 
-El cual estará iniciado en el mes de Agosto 2025. Si estás interesado(a), puedes inscribirte en este link https://bit.ly/cursofabricas
+👉 Si desean participar, pueden realizar su registro tambien  en línea en el siguiente enlace:
 
-Para mayor información contactar: karen.mendez@colombiaproductiva.com; licamargod@unal.edu.co
+Formulario de Preinscripción Curso de Sostenibilidad Empresarial (Página 1 de 6).
 
-Lo que debes saber: Curso es de carácter virtual, dirigido por la Universidad Nacional de Colombia. 19 horas de formación, 4 horas asincrónicas (tiempo autónomo de estudio del estudiante) y 15 horas virtuales sincrónicas o en línea; distribuidas en 7 sesiones (2 sesiones a la semana, cada una de 2 horas) que se desarrollan aproximadamente en un mes.
-
-Los cursos se desarrollarán los martes y jueves de 7:00 am a 9:00 am o de 5:00 pm a 7:00 pm, así como los días miércoles y viernes en los mismos horarios.
-
-El curso es completamente gratuito, no tendrá costo solo para aquellos estudiantes que finalicen el curso. En caso de iniciar y no finalizar el curso habrá una penalidad de $300.000. El curso contempla temáticas como: Nociones y pilares de la sostenibilidad en el sector productivo, Agenda de desarrollo sostenible ODS y su conexión con el sector productivo, Tendencias, prácticas y experiencias de sostenibilidad, Crisis climática, Estrategia de economía circular, entre otros.`
+🗓Este curso inicia mensualmente (según demanda)
+•	Grupo A: Martes y jueves 7:00 a 9:00 a.m.
+•	Grupo B: Martes y jueves 5:00 a 7:00 p.m.
+Esperamos contar con su participación.`
   },
   {
     id: 'grupo_31',
