@@ -26,17 +26,17 @@ export const COLOMBIA_PRODUCTIVA_CONFIG = {
 };
 
 export const getOfficialMessage = (): string => {
-  return `Buenas Tardes, Bienvenidos a la preinscripción de "Curso de Gestión de Sostenibilidad de la empresa". Desde ${COLOMBIA_PRODUCTIVA_CONFIG.ORGANIZATION} en Alianza con la ${COLOMBIA_PRODUCTIVA_CONFIG.PARTNER}, los invitamos a participar en el curso virtual gratuito en ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_NAME}.
+  return `📢 Invitación especial
+Estimados(as) empresarios(as), de acuerdo al correo enviado para su participación en el Curso gratuito en Gestión de la Sostenibilidad Empresarial, gracias al Ministerio de comercio, Colombia Productiva y la Universidad Nacional de Colombia.
 
-El cual estará iniciado en el mes de ${COLOMBIA_PRODUCTIVA_CONFIG.START_DATE}. Si estás interesado(a), puedes inscribirte en este link ${COLOMBIA_PRODUCTIVA_CONFIG.REGISTRATION_LINK}
+👉 Si desean participar, pueden realizar su registro tambien  en línea en el siguiente enlace:
 
-Para mayor información contactar: ${COLOMBIA_PRODUCTIVA_CONFIG.CONTACTS.KAREN}; ${COLOMBIA_PRODUCTIVA_CONFIG.CONTACTS.ANDREA}
+Formulario de Preinscripción Curso de Sostenibilidad Empresarial (Página 1 de 6).
 
-Lo que debes saber: Curso es de carácter virtual, dirigido por la Universidad Nacional de Colombia. ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_DETAILS.DURATION}; distribuidas en ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_DETAILS.SESSIONS}.
-
-Los cursos se desarrollarán los ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_DETAILS.SCHEDULE}.
-
-El curso es ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_DETAILS.COST}. ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_DETAILS.PENALTY}. El curso contempla temáticas como: ${COLOMBIA_PRODUCTIVA_CONFIG.COURSE_DETAILS.TOPICS.join(', ')}, entre otros.`;
+🗓Este curso inicia mensualmente (según demanda)
+•	Grupo A: Martes y jueves 7:00 a 9:00 a.m.
+•	Grupo B: Martes y jueves 5:00 a 7:00 p.m.
+Esperamos contar con su participación.`;
 };
 
 export const getCourseInfo = () => {
