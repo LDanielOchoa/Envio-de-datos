@@ -47,8 +47,8 @@ https://forms.gle/qfK6EtTQaYtVGu1E7
 📁 Documentos requeridos: https://drive.google.com/file/d/18qPf-m5CGYt_WKt0s59RLyHkHM7-Fm_g/view?usp=sharing
 
 
-📅 Inicio del curso: Jueves 14 de Agosto
-🗓 Finaliza: Martes 11 de Septiembre 2025
+📅 Inicio del curso: Martes 26 de agosto 2025
+🗓 Finaliza: Martes 23 de Septiembre 2025
 📌 Horario: Martes y Jueves de 7:00 a.m. a 9:00 a.m.
 📍 Grupo 31
 
@@ -81,8 +81,8 @@ Por favor, subir el archivo al link parte inferior o envíalo al correo dbarrera
 https://forms.gle/7WE6pjn24c5tog4F7
 📁 Documentos requeridos: https://drive.google.com/file/d/18qPf-m5CGYt_WKt0s59RLyHkHM7-Fm_g/view?usp=sharing
 
-📅 Inicio del curso: Jueves 14 de Agosto
-🗓 Finaliza: Martes 11 de Septiembre 2025
+📅 Inicio del curso: Martes 26 de agosto 2025
+🗓 Finaliza: Martes 23 de Septiembre 2025
 📌 Horario: Martes y Jueves de 5:00 p.m. a 7:00 p.m.
 📍 Grupo 32
 
