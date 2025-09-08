@@ -49,7 +49,7 @@ require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
 
 # Install essential dependencies including dev deps for build
 ENV SKIP_ENV_VALIDATION=1
-RUN npm ci --no-audit --no-fund
+RUN npm install --no-audit --no-fund
 
 # Copy source code
 COPY . .
@@ -78,7 +78,7 @@ COPY backend ./backend
 
 # Install backend dependencies separately
 WORKDIR /app/backend
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm install --omit=dev --no-audit --no-fund
 
 # Set working directory back to app
 WORKDIR /app
