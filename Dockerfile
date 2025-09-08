@@ -25,7 +25,8 @@ const essentialDeps = { \
   'jsdom': pkg.dependencies.jsdom, \
   'express-rate-limit': pkg.dependencies['express-rate-limit'], \
   'node-cron': pkg.dependencies['node-cron'], \
-  'qrcode-terminal': pkg.dependencies['qrcode-terminal'] \
+  'qrcode-terminal': pkg.dependencies['qrcode-terminal'], \
+  'whatsapp-web.js': '1.23.0' \
 }; \
 const essentialDevDeps = { \
   'typescript': pkg.devDependencies.typescript, \
@@ -40,7 +41,8 @@ const essentialDevDeps = { \
   '@types/uuid': pkg.devDependencies['@types/uuid'], \
   '@types/cors': pkg.devDependencies['@types/cors'], \
   '@types/express-rate-limit': pkg.devDependencies['@types/express-rate-limit'], \
-  '@types/qrcode': pkg.devDependencies['@types/qrcode'] \
+  '@types/qrcode': pkg.devDependencies['@types/qrcode'], \
+  '@types/whatsapp-web.js': pkg.devDependencies['@types/whatsapp-web.js'] \
 }; \
 pkg.dependencies = essentialDeps; \
 pkg.devDependencies = essentialDevDeps; \
