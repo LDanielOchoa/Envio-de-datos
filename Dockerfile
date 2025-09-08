@@ -1,68 +1,73 @@
-FROM node:20-slim
+# Stage 1: Build stage
+FROM node:20-slim AS builder
 
-# Instalar dependencias necesarias para Chromium
-RUN apt-get update && apt-get install -y \
-    gconf-service \
-    libasound2 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgcc1 \
-    libgconf-2-4 \
-    libgdk-pixbuf2.0-0 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    ca-certificates \
-    fonts-liberation \
-    libappindicator1 \
-    libnss3 \
-    lsb-release \
-    xdg-utils \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar solo package.json y package-lock.json primero (para aprovechar cache de Docker)
+# Copiar package files
 COPY package*.json ./
-COPY backend/package*.json ./backend/
 
-# Instalar dependencias del frontend
-RUN npm ci --only=production
+# Crear un package.json temporal solo con las dependencias esenciales
+RUN node -e " \
+const pkg = require('./package.json'); \
+const essentialDeps = { \
+  'next': pkg.dependencies.next, \
+  'react': pkg.dependencies.react, \
+  'react-dom': pkg.dependencies['react-dom'], \
+  '@whiskeysockets/baileys': pkg.dependencies['@whiskeysockets/baileys'], \
+  'qrcode': pkg.dependencies.qrcode, \
+  'axios': pkg.dependencies.axios, \
+  'cors': pkg.dependencies.cors, \
+  'winston': pkg.dependencies.winston, \
+  'uuid': pkg.dependencies.uuid, \
+  'dotenv': pkg.dependencies.dotenv \
+}; \
+pkg.dependencies = essentialDeps; \
+delete pkg.devDependencies; \
+delete pkg.scripts.postinstall; \
+require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
 
-# Instalar dependencias del backend
-RUN cd backend && npm ci --only=production
+# Install only essential dependencies
+ENV NODE_ENV=production
+ENV SKIP_ENV_VALIDATION=1
+RUN npm ci --omit=dev --no-audit --no-fund
 
-# Copiar el resto del código fuente
+# Copy source code
 COPY . .
 
-# Construir la aplicación frontend
+# Build the application
 RUN npm run build
 
-# Exponer el puerto
+# Stage 2: Production stage
+FROM node:20-slim AS production
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# Copy backend files
+COPY backend ./backend
+
+# Install backend dependencies separately
+WORKDIR /app/backend
+RUN npm ci --omit=dev --no-audit --no-fund
+
+# Set working directory back to app
+WORKDIR /app
+
+# Create auth_info directory for WhatsApp sessions
+RUN mkdir -p backend/auth_info
+
+# Expose port
 EXPOSE 3000
 
-# Comando para ejecutar la aplicación
+# Start the application
 CMD ["npm", "start"]
