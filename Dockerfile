@@ -35,7 +35,8 @@ const essentialDevDeps = { \
   '@types/node': pkg.devDependencies['@types/node'], \
   '@types/react': pkg.devDependencies['@types/react'], \
   '@types/react-dom': pkg.devDependencies['@types/react-dom'], \
-  '@types/jsdom': pkg.devDependencies['@types/jsdom'] \
+  '@types/jsdom': pkg.devDependencies['@types/jsdom'], \
+  '@types/node-cron': pkg.devDependencies['@types/node-cron'] \
 }; \
 pkg.dependencies = essentialDeps; \
 pkg.devDependencies = essentialDevDeps; \
