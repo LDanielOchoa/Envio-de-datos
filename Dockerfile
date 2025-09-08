@@ -19,17 +19,31 @@ const essentialDeps = { \
   'cors': pkg.dependencies.cors, \
   'winston': pkg.dependencies.winston, \
   'uuid': pkg.dependencies.uuid, \
-  'dotenv': pkg.dependencies.dotenv \
+  'dotenv': pkg.dependencies.dotenv, \
+  'xlsx': pkg.dependencies.xlsx, \
+  'csv-parse': pkg.dependencies['csv-parse'], \
+  'jsdom': pkg.dependencies.jsdom, \
+  'express-rate-limit': pkg.dependencies['express-rate-limit'], \
+  'node-cron': pkg.dependencies['node-cron'], \
+  'qrcode-terminal': pkg.dependencies['qrcode-terminal'] \
+}; \
+const essentialDevDeps = { \
+  'typescript': pkg.devDependencies.typescript, \
+  'tailwindcss': pkg.devDependencies.tailwindcss, \
+  'postcss': pkg.devDependencies.postcss, \
+  'autoprefixer': pkg.devDependencies.autoprefixer, \
+  '@types/node': pkg.devDependencies['@types/node'], \
+  '@types/react': pkg.devDependencies['@types/react'], \
+  '@types/react-dom': pkg.devDependencies['@types/react-dom'] \
 }; \
 pkg.dependencies = essentialDeps; \
-delete pkg.devDependencies; \
+pkg.devDependencies = essentialDevDeps; \
 delete pkg.scripts.postinstall; \
 require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
 
-# Install only essential dependencies
-ENV NODE_ENV=production
+# Install essential dependencies including dev deps for build
 ENV SKIP_ENV_VALIDATION=1
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # Copy source code
 COPY . .
