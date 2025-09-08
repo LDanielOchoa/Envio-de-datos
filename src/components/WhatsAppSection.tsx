@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WhatsAppStatus, User } from '../types';
+import QRModal from './QRModal';
 
 interface WhatsAppSectionProps {
   whatsappStatus: WhatsAppStatus | null;
@@ -22,6 +23,74 @@ export default function WhatsAppSection({
   onRefreshClient,
   currentUser
 }: WhatsAppSectionProps) {
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<string>('disconnected');
+  const [backendPhoneNumber, setBackendPhoneNumber] = useState<string>('');
+
+  // Update local state when props change (no more duplicate polling)
+  useEffect(() => {
+    // Use the status passed from parent component to avoid duplicate polling
+    setBackendStatus(whatsappStatus?.isConnected ? 'connected' : 'disconnected');
+    setBackendPhoneNumber(whatsappStatus?.phoneNumber || '');
+  }, [whatsappStatus]);
+
+  const handleGenerateQR = () => {
+    setIsQRModalOpen(true);
+  };
+
+  // Determine connection state based on backend status
+  const isConnected = backendStatus === 'connected';
+  const isConnecting = backendStatus === 'connecting';
+  const isQrReady = backendStatus === 'QR_READY';
+  
+  // Get appropriate status display
+  const getStatusDisplay = () => {
+    switch (backendStatus) {
+      case 'connected':
+        return {
+          text: 'Conectado',
+          color: 'green',
+          bgClass: 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200',
+          dotClass: 'bg-green-500',
+          textClass: 'text-green-800'
+        };
+      case 'connecting':
+        return {
+          text: 'Conectando...',
+          color: 'yellow',
+          bgClass: 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200',
+          dotClass: 'bg-yellow-500',
+          textClass: 'text-yellow-800'
+        };
+      case 'QR_READY':
+        return {
+          text: 'QR Listo - Escanea con WhatsApp',
+          color: 'blue',
+          bgClass: 'bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200',
+          dotClass: 'bg-blue-500',
+          textClass: 'text-blue-800'
+        };
+      case 'error':
+        return {
+          text: 'Error de Conexión',
+          color: 'red',
+          bgClass: 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200',
+          dotClass: 'bg-red-500',
+          textClass: 'text-red-800'
+        };
+      default:
+        return {
+          text: 'Desconectado',
+          color: 'red',
+          bgClass: 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200',
+          dotClass: 'bg-red-500',
+          textClass: 'text-red-800'
+        };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -53,41 +122,56 @@ export default function WhatsAppSection({
           </div>
           
           <div className="p-6">
-            <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${
-              whatsappStatus?.isConnected 
-                ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' 
-                : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'
-            }`}>
-              {whatsappStatus?.isConnected ? (
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-green-500 rounded-full mr-3 animate-pulse"></div>
-                    <span className="font-semibold text-green-800 text-lg">Conectado</span>
-                  </div>
-                  <div className="space-y-2 text-green-700">
-                    <p className="flex items-center">
+            <div className={`p-6 rounded-xl border-2 transition-all duration-300 ${statusDisplay.bgClass}`}>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <div className={`w-4 h-4 ${statusDisplay.dotClass} rounded-full mr-3 ${isConnected || isConnecting || isQrReady ? 'animate-pulse' : ''}`}></div>
+                  <span className={`font-semibold ${statusDisplay.textClass} text-lg`}>{statusDisplay.text}</span>
+                </div>
+                
+                {isConnected && backendPhoneNumber && (
+                  <div className="space-y-2">
+                    <p className="flex items-center text-green-700">
                       <span className="font-medium mr-2">📱 Número:</span>
                       <span className="bg-green-100 px-3 py-1 rounded-full text-sm font-mono">
-                        {whatsappStatus.phoneNumber}
+                        {backendPhoneNumber}
                       </span>
                     </p>
-                    <p className="flex items-center text-sm">
+                    <p className="flex items-center text-sm text-green-700">
                       <span className="font-medium mr-2">🕒 Última conexión:</span>
-                      <span>{whatsappStatus.lastSeen?.toLocaleString()}</span>
+                      <span>{new Date().toLocaleString()}</span>
                     </p>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
-                    <span className="font-semibold text-red-800 text-lg">Desconectado</span>
+                )}
+                
+                {isQrReady && (
+                  <div className="space-y-2">
+                    <p className="text-blue-700">
+                      ✨ Código QR generado y listo para escanear
+                    </p>
+                    <p className="text-sm text-blue-600">
+                      Haz clic en "📱 Generar QR" para ver el código
+                    </p>
                   </div>
+                )}
+                
+                {isConnecting && (
+                  <div className="space-y-2">
+                    <p className="text-yellow-700">
+                      🔄 Estableciendo conexión con WhatsApp...
+                    </p>
+                    <p className="text-sm text-yellow-600">
+                      Por favor espera un momento
+                    </p>
+                  </div>
+                )}
+                
+                {!isConnected && !isConnecting && !isQrReady && (
                   <p className="text-red-700">
                     Escanea el código QR para conectar tu WhatsApp
                   </p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -125,7 +209,7 @@ export default function WhatsAppSection({
               </button>
               
               <button
-                onClick={onGenerateQR}
+                onClick={handleGenerateQR}
                 disabled={qrLoading}
                 className="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-4 rounded-xl hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
@@ -135,52 +219,32 @@ export default function WhatsAppSection({
           </div>
         </div>
 
-        {/* QR Code Section */}
-        {!whatsappStatus?.isConnected && (
+        {/* Additional Info Section - Only show when disconnected */}
+        {!isConnected && (
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-blue-200">
-              <h3 className="text-xl font-semibold text-blue-900 flex items-center">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                Código QR
+            <div className="bg-gradient-to-r from-amber-50 to-orange-100 px-6 py-4 border-b border-amber-200">
+              <h3 className="text-xl font-semibold text-amber-900 flex items-center">
+                <div className="w-2 h-2 bg-amber-500 rounded-full mr-3"></div>
+                Información de Conexión
               </h3>
             </div>
             
             <div className="p-6">
-              <div className="text-center">
-                {whatsappStatus?.qrCode ? (
-                  <div className="space-y-6">
-                    <div className="relative inline-block">
-                      <img
-                        src={whatsappStatus.qrCode}
-                        alt="QR Code"
-                        className="w-64 h-64 mx-auto border-4 border-blue-200 rounded-2xl shadow-2xl"
-                      />
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-pulse"></div>
-                    </div>
-                    
-                    <div className="bg-blue-50 rounded-xl p-4">
-                      <p className="font-semibold text-blue-900 mb-2">
-                        📱 Escanea este código con WhatsApp
-                      </p>
-                      <div className="text-sm text-blue-700 space-y-1">
-                        <p>1. Abre WhatsApp en tu teléfono</p>
-                        <p>2. Toca Menú → WhatsApp Web</p>
-                        <p>3. Escanea este código QR</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-12">
-                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-6"></div>
-                    <p className="text-gray-600 mb-4">Generando código QR...</p>
-                    <button
-                      onClick={onGenerateQR}
-                      className="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200"
-                    >
-                      ↻ Reintentar generación
-                    </button>
-                  </div>
-                )}
+              <div className="text-center space-y-4">
+                <div className="text-6xl mb-4">📱</div>
+                <h4 className="text-lg font-semibold text-gray-900">WhatsApp Desconectado</h4>
+                <p className="text-gray-600 mb-6">
+                  Para conectar tu WhatsApp, haz clic en el botón "📱 Generar QR" y escanea el código que aparecerá en el modal.
+                </p>
+                
+                <div className="bg-amber-50 rounded-xl p-4">
+                  <p className="font-semibold text-amber-900 mb-2">
+                    💡 Consejo
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    Una vez conectado, tu sesión se mantendrá activa para futuros usos.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -188,7 +252,7 @@ export default function WhatsAppSection({
       </div>
 
       {/* Connection Info for Connected State */}
-      {whatsappStatus?.isConnected && (
+      {isConnected && (
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6">
           <div className="flex items-center mb-4">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
@@ -202,7 +266,7 @@ export default function WhatsAppSection({
             </div>
             <div className="bg-white rounded-xl p-4 border border-green-200">
               <p className="font-medium text-green-800">Número</p>
-              <p className="text-green-600 font-mono">{whatsappStatus.phoneNumber}</p>
+              <p className="text-green-600 font-mono">{backendPhoneNumber || 'Conectado'}</p>
             </div>
             <div className="bg-white rounded-xl p-4 border border-green-200">
               <p className="font-medium text-green-800">Verificación</p>
@@ -253,6 +317,13 @@ export default function WhatsAppSection({
           </div>
         </div>
       </div>
+
+      {/* QR Modal */}
+      <QRModal
+        isOpen={isQRModalOpen}
+        onClose={() => setIsQRModalOpen(false)}
+        onGenerateQR={onGenerateQR}
+      />
     </div>
   );
 }

@@ -44,6 +44,8 @@ export default function Home() {
         phoneNumber: '',
         lastSeen: null
     });
+    const [backendConnectionStatus, setBackendConnectionStatus] = useState('disconnected');
+    const [backendPhoneNumber, setBackendPhoneNumber] = useState<string>('');
 
     // Inicializar filteredContacts con contacts
     useEffect(() => {
@@ -82,28 +84,27 @@ export default function Home() {
 
     // WhatsApp Functions
     const checkWhatsAppStatus = async () => {
-        if (isCheckingStatus || !authState.user) return;
+        if (isCheckingStatus) return;
 
         try {
             setIsCheckingStatus(true);
-            const response = await fetch(`/api/whatsapp/status?sessionId=${authState.user.whatsappSessionId}`);
-
-            if (response.status === 429) {
-                addLog('⚠️ Muchas peticiones, esperando un momento...');
-                return;
-            }
+            const response = await fetch('http://localhost:3001/api/status');
 
             const data = await response.json();
-            if (data.success) {
+            if (data.status) {
+                const isConnected = data.status === 'connected';
                 const wasConnected = whatsappStatus?.isConnected;
-                setWhatsappStatus(data.data);
+                
+                setWhatsappStatus({
+                    isConnected,
+                    qrCode: '',
+                    phoneNumber: isConnected ? 'Conectado' : '',
+                    lastSeen: new Date()
+                });
 
-                if (data.data.qrCode && !whatsappStatus?.qrCode) {
-                    addLog('📱 Código QR disponible - Escanea para conectar');
-                } else if (data.data.isConnected && !wasConnected) {
+                if (isConnected && !wasConnected) {
                     addLog('✅ WhatsApp conectado exitosamente');
-                    addLog(`📱 Número: ${data.data.phoneNumber}`);
-                } else if (!data.data.isConnected && wasConnected) {
+                } else if (!isConnected && wasConnected) {
                     addLog('❌ WhatsApp desconectado');
                 }
             }
@@ -115,35 +116,28 @@ export default function Home() {
     };
 
     const forceRefreshStatus = async () => {
-        if (!authState.user) return;
-
         try {
             addLog('🔍 Verificando conexión manualmente...');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            const response = await fetch('/api/whatsapp/check-connection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Session-Id': authState.user.whatsappSessionId
-                }
-            });
-
-            if (response.status === 429) {
-                addLog('⚠️ Demasiadas peticiones, espera un momento...');
-                return;
-            }
-
+            const response = await fetch('http://localhost:3001/api/status');
             const data = await response.json();
-            if (data.success) {
+            
+            if (data.status) {
+                const isConnected = data.status === 'connected';
                 const wasConnected = whatsappStatus?.isConnected;
-                setWhatsappStatus(data.data);
+                
+                setWhatsappStatus({
+                    isConnected,
+                    qrCode: '',
+                    phoneNumber: isConnected ? 'Conectado' : '',
+                    lastSeen: new Date()
+                });
 
-                if (data.data.isConnected && !wasConnected) {
+                if (isConnected && !wasConnected) {
                     addLog(`🎉 ¡WhatsApp CONECTADO exitosamente!`);
-                    addLog(`📱 Número: ${data.data.phoneNumber}`);
-                } else if (data.data.isConnected) {
-                    addLog(`✅ WhatsApp sigue conectado como: ${data.data.phoneNumber}`);
+                } else if (isConnected) {
+                    addLog(`✅ WhatsApp sigue conectado`);
                 } else {
                     addLog(`❌ WhatsApp no conectado`);
                 }
@@ -154,22 +148,21 @@ export default function Home() {
     };
 
     const resetWhatsApp = async () => {
-        if (qrLoading || !authState.user) return;
+        if (qrLoading) return;
 
         try {
             setQrLoading(true);
             addLog('🔄 Reiniciando WhatsApp completamente...');
 
-            const response = await fetch('/api/whatsapp/reset', {
+            const response = await fetch('http://localhost:3001/api/disconnect', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Session-Id': authState.user.whatsappSessionId
+                    'Content-Type': 'application/json'
                 }
             });
 
             const data = await response.json();
-            if (data.success) {
+            if (data.message) {
                 addLog('✅ WhatsApp reiniciado completamente');
                 setWhatsappStatus({
                     isConnected: false,
@@ -178,7 +171,7 @@ export default function Home() {
                     lastSeen: null
                 });
             } else {
-                addLog(`❌ Error: ${data.error}`);
+                addLog(`❌ Error: ${data.error || 'Error desconocido'}`);
             }
         } catch (error) {
             addLog('❌ Error al reiniciar WhatsApp');
@@ -188,40 +181,26 @@ export default function Home() {
     };
 
     const generateNewQR = async () => {
-        if (qrLoading || !authState.user) return;
+        if (qrLoading) return;
 
         try {
             setQrLoading(true);
             addLog('🚀 Generando código QR...');
 
-            const response = await fetch('/api/whatsapp/qr', {
+            // Call the Baileys backend directly
+            const response = await fetch('http://localhost:3001/api/reconnect', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Session-Id': authState.user.whatsappSessionId
+                    'Content-Type': 'application/json'
                 }
             });
 
-            if (response.status === 429) {
-                addLog('⚠️ Demasiadas peticiones, espera un momento...');
-                return;
-            }
-
             const data = await response.json();
-            if (data.success) {
-                if (data.data.isConnected) {
-                    setWhatsappStatus(data.data);
-                    addLog('🎉 ¡WhatsApp ya está CONECTADO!');
-                    addLog(`📱 Conectado como: ${data.data.phoneNumber}`);
-                } else if (data.data.qrCode) {
-                    setWhatsappStatus(data.data);
-                    addLog('✅ ¡CÓDIGO QR GENERADO EXITOSAMENTE!');
-                    addLog('👉 Escanea el código QR con WhatsApp');
-                } else {
-                    addLog('⚠️ Respuesta exitosa pero sin QR ni conexión');
-                }
+            if (data.message) {
+                addLog('✅ Solicitud de QR enviada al backend');
+                addLog('👉 El código QR se generará automáticamente');
             } else {
-                addLog(`❌ Error: ${data.error}`);
+                addLog(`❌ Error: ${data.error || 'Error desconocido'}`);
             }
         } catch (error) {
             addLog('❌ Error de conexión al generar QR');
@@ -274,7 +253,7 @@ export default function Home() {
             }
 
             addLog('📤 [INDIVIDUAL] Enviando archivo al servidor...');
-            const response = await fetch('/api/sheets/contacts', {
+            const response = await fetch('http://localhost:3001/api/excel/process', {
                 method: 'POST',
                 body: formData,
             });
@@ -321,7 +300,7 @@ export default function Home() {
             }
 
             addLog('📤 [GRUPOS] Enviando archivo al servidor...');
-            const response = await fetch('/api/sheets/contacts', {
+            const response = await fetch('http://localhost:3001/api/excel/process', {
                 method: 'POST',
                 body: formData,
             });
@@ -392,186 +371,8 @@ export default function Home() {
         }
     };
 
-    // Modificar la función sendMessages para usar filteredContacts en lugar de contacts
-    const sendMessages = async () => {
-        if (!message.trim()) {
-            addLog('❌ Error: Por favor, ingresa un mensaje');
-            return;
-        }
-
-        if (filteredContacts.length === 0) {
-            addLog('❌ Error: No hay contactos para enviar');
-            return;
-        }
-
-        if (!whatsappStatus.isConnected) {
-            addLog('❌ Error: WhatsApp no está conectado');
-            return;
-        }
-
-        if (!authState.user) {
-            addLog('❌ Error: Usuario no autenticado');
-            return;
-        }
-
-        setLoading(true);
-        setSendingProgress([]);
-        setCurrentSendingIndex(0);
-        addLog(`📤 Enviando mensajes optimizado a ${filteredContacts.length} contactos...`);
-
-        // Inicializar progreso
-        const initialProgress: SendingProgress[] = filteredContacts.map(contact => ({
-            contactId: contact.id,
-            contactName: `${contact.name} ${contact.lastName || ''}`.trim(),
-            phone: contact.phone,
-            status: 'pending'
-        }));
-        setSendingProgress(initialProgress);
-
-        try {
-            // Enviar todos los mensajes en una sola llamada optimizada
-            const formData = new FormData();
-            formData.append('contacts', JSON.stringify(filteredContacts));
-            formData.append('message', message);
-
-            // Determinar si usar plantillas basado en si el mensaje contiene {nombre_apellidos}
-            const useTemplates = message.includes('{nombre_apellidos}') || message.includes('{grupo}');
-            formData.append('useTemplates', useTemplates.toString());
-
-            // Por defecto, no saltar validación (validar números)
-            formData.append('skipValidation', 'false');
-
-            console.log('🔧 Enviando con useTemplates:', useTemplates, 'skipValidation: false');
-
-            // Abrir el modal justo antes de hacer la llamada
-            setShowSendingModal(true);
-            
-            // Pequeño delay para que el modal se renderice antes de iniciar el polling
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const response = await fetch('/api/whatsapp/send-reliable', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Session-Id': authState.user.whatsappSessionId
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                const { results: serverResults, successCount, errorCount, invalidNumbersCount, verifiedWhatsappCount, invalidNumbers } = data.data;
-
-                // Actualizar progreso basado en los resultados del servidor
-                const updatedProgress = initialProgress.map((item, index) => {
-                    const result = serverResults[index];
-                    if (result) {
-                        return {
-                            ...item,
-                            status: result.status,
-                            error: result.error,
-                            duration: 0, // El servidor no proporciona duración individual
-                            timestamp: new Date()
-                        };
-                    }
-                    return item;
-                });
-
-                setSendingProgress(updatedProgress);
-
-                // Actualizar resultados finales
-                setResults({
-                    successCount,
-                    errorCount,
-                    invalidNumbersCount,
-                    verifiedWhatsappCount,
-                    invalidNumbers,
-                    results: serverResults
-                });
-
-                addLog(`✅ Envío optimizado completado:`);
-                addLog(`   ✅ ${successCount} exitosos`);
-                addLog(`   ❌ ${errorCount} fallidos`);
-                addLog(`   ⚠️ ${invalidNumbersCount} sin WhatsApp`);
-                addLog(`   📱 ${verifiedWhatsappCount} con WhatsApp`);
-
-                if (invalidNumbers && invalidNumbers.length > 0) {
-                    addLog(`📋 Números sin WhatsApp: ${invalidNumbers.join(', ')}`);
-                }
-            } else {
-                addLog(`❌ Error en el servidor: ${data.error}`);
-            }
-
-        } catch (error) {
-            addLog('❌ Error al enviar mensajes');
-            console.error('Error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Función para probar el envío de mensajes
-    const testSend = async () => {
-        if (!message.trim()) {
-            addLog('❌ Error: Por favor, ingresa un mensaje');
-            return;
-        }
-
-        if (!whatsappStatus.isConnected) {
-            addLog('❌ Error: WhatsApp no está conectado');
-            return;
-        }
-
-        if (!authState.user) {
-            addLog('❌ Error: Usuario no autenticado');
-            return;
-        }
-
-        try {
-            addLog('🧪 Enviando mensaje de prueba...');
-
-            // Crear un contacto de prueba o usar el primero disponible
-            const testContact = filteredContacts.length > 0
-                ? filteredContacts[0]
-                : {
-                    id: 'test_contact',
-                    name: 'Usuario',
-                    lastName: 'De Prueba',
-                    phone: whatsappStatus.phoneNumber,
-                    status: 'pending'
-                };
-
-            // Personalizar el mensaje para el contacto de prueba
-            const personalizedMessage = personalizeMessage(message, testContact);
-
-            const formData = new FormData();
-            formData.append('phone', testContact.phone);
-            formData.append('message', personalizedMessage);
-
-            const response = await fetch('/api/whatsapp/test-send', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Session-Id': authState.user.whatsappSessionId
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                addLog(`✅ Mensaje de prueba enviado correctamente a ${testContact.name}`);
-            } else {
-                addLog(`❌ Error en prueba: ${data.error}`);
-            }
-        } catch (error) {
-            addLog('❌ Error enviando mensaje de prueba');
-        }
-    };
-
-    // Utility Functions
     const addLog = (message: string) => {
-        const timestamp = new Date().toLocaleTimeString();
-        setLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 99)]);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
     };
 
     const clearLogs = () => {
@@ -588,39 +389,326 @@ export default function Home() {
         setShowSendingModal(true);
     };
 
-    // Effects
-    useEffect(() => {
-        if (authState.isAuthenticated && authState.user) {
-            checkWhatsAppStatus();
-
-            const eventSource = new EventSource(`/api/whatsapp/connection-events?sessionId=${authState.user.whatsappSessionId}`);
-
-            eventSource.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'status_change' && data.data) {
-                        const wasConnected = whatsappStatus?.isConnected;
-                        setWhatsappStatus(data.data);
-
-                        if (data.data.isConnected && !wasConnected) {
-                            addLog('🎉 ¡WhatsApp CONECTADO automáticamente!');
-                            addLog(`📱 Conectado como: ${data.data.phoneNumber}`);
-                        }
-                    }
-                } catch (error) {
-                    console.log('Error procesando evento SSE:', error);
-                }
-            };
-
-            eventSource.onopen = () => {
-                addLog('🔌 Monitoreo en tiempo real activo');
-            };
-
-            return () => {
-                eventSource.close();
-            };
+    // Función para enviar mensaje de prueba
+    const testSend = async () => {
+        if (!message.trim()) {
+            addLog('❌ Error: Por favor, ingresa un mensaje');
+            return;
         }
-    }, [authState.isAuthenticated, authState.user]);
+
+        if (!whatsappStatus.isConnected) {
+            addLog('❌ Error: WhatsApp no está conectado');
+            return;
+        }
+
+        if (filteredContacts.length === 0) {
+            addLog('❌ Error: No hay contactos para probar');
+            return;
+        }
+
+        // Usar el primer contacto para la prueba
+        const testContact = filteredContacts[0];
+        addLog(`🧪 Enviando mensaje de prueba a: ${testContact.name} (${testContact.phone})`);
+
+        try {
+            const response = await fetch('http://localhost:3001/api/messages/send-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contact: testContact,
+                    template: message
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                addLog(`✅ Mensaje de prueba enviado exitosamente`);
+            } else {
+                addLog(`❌ Error en el mensaje de prueba: ${data.error}`);
+            }
+        } catch (error: unknown) {
+            addLog('❌ Error al enviar mensaje de prueba');
+            console.error('Error:', error);
+        }
+    };
+
+    // Función para enviar mensajes masivos
+    const sendMessages = async () => {
+        if (!message.trim()) {
+            addLog('❌ Error: Por favor, ingresa un mensaje');
+            return;
+        }
+
+        if (!whatsappStatus.isConnected) {
+            addLog('❌ Error: WhatsApp no está conectado');
+            return;
+        }
+
+        if (filteredContacts.length === 0) {
+            addLog('❌ Error: No hay contactos para enviar');
+            return;
+        }
+
+        setLoading(true);
+        addLog(`🚀 Iniciando envío de mensajes a ${filteredContacts.length} contactos...`);
+
+        // Inicializar progreso con todos los contactos
+        const initialProgress = filteredContacts.map((contact, index) => ({
+            contactId: `progress-${index}`,
+            contactName: contact.name,
+            phone: contact.phone,
+            status: 'pending' as const,
+            error: undefined,
+            timestamp: new Date(),
+            duration: 0
+        }));
+        
+        setSendingProgress(initialProgress);
+        
+        // Reiniciar resultados
+        setResults(null);
+
+        try {
+            // Enviar mensajes usando el backend Express
+            const response = await fetch('http://localhost:3001/api/messages/send-bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contacts: filteredContacts,
+                    message: message
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Abrir el modal para mostrar progreso
+                setShowSendingModal(true);
+                
+                // Iniciar polling del progreso
+                const pollProgress = async (): Promise<void> => {
+                    try {
+                        const progressResponse = await fetch('http://localhost:3001/api/messages/sending-progress');
+                        const progressData = await progressResponse.json();
+                        
+                        if (progressData.success && progressData.progress) {
+                            // Actualizar progreso
+                            const updatedProgress = initialProgress.map((item, index) => {
+                                const progress = progressData.progress[index];
+                                if (progress) {
+                                    return {
+                                        ...item,
+                                        status: progress.status || 'pending',
+                                        error: progress.error,
+                                        timestamp: new Date()
+                                    };
+                                }
+                                return item;
+                            });
+                            setSendingProgress(updatedProgress);
+                            
+                            // Si el envío terminó, obtener resultados finales
+                            if (progressData.isComplete) {
+                                const resultsResponse = await fetch('http://localhost:3001/api/messages/sending-results');
+                                const resultsData = await resultsResponse.json();
+                                
+                                if (resultsData.success && resultsData.results) {
+                                    setResults({
+                                        successCount: resultsData.results.successCount,
+                                        errorCount: resultsData.results.errorCount,
+                                        invalidNumbersCount: resultsData.results.invalidNumbers?.length || 0,
+                                        verifiedWhatsappCount: resultsData.results.successCount,
+                                        invalidNumbers: resultsData.results.invalidNumbers || [],
+                                        results: resultsData.results.details || []
+                                    });
+                                    
+                                    addLog('✅ Envío completado:');
+                                    addLog(`   ✅ ${resultsData.results.successCount} exitosos`);
+                                    addLog(`   ❌ ${resultsData.results.errorCount} fallidos`);
+                                }
+                                return; // Stop polling
+                            }
+                            
+                            // Continuar polling si no terminó
+                            setTimeout(pollProgress, 1000);
+                        }
+                    } catch (error: unknown) {
+                        console.error('Error polling progress:', error);
+                        setTimeout(pollProgress, 2000); // Retry after 2 seconds
+                    }
+                };
+                
+                // Iniciar polling después de un pequeño delay
+                setTimeout(pollProgress, 500);
+                
+            } else {
+                addLog(`❌ Error del servidor: ${data.error}`);
+            }
+
+        } catch (error: unknown) {
+            addLog('❌ Error al enviar mensajes');
+            console.error('Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Función para monitorear el progreso del envío
+    const startProgressMonitoring = () => {
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch('http://localhost:3001/api/messages/sending-progress');
+                const data = await response.json();
+                
+                if (data.success && data.progress) {
+                    const progress = data.progress;
+                    
+                    // Actualizar progreso en el estado
+                    setSendingProgress(prevProgress => {
+                        const newProgress = [...prevProgress];
+                        
+                        // Si hay un contacto actual siendo procesado
+                        if (progress.current) {
+                            const currentIndex = progress.current.index - 1;
+                            if (currentIndex >= 0 && currentIndex < newProgress.length) {
+                                newProgress[currentIndex] = {
+                                    ...newProgress[currentIndex],
+                                    status: 'sending'
+                                };
+                            }
+                        }
+                        
+                        return newProgress;
+                    });
+                    
+                    setCurrentSendingIndex(progress.current?.index || 0);
+                    
+                    // Si el envío terminó, obtener resultados finales
+                    if (!progress.isActive && progress.endTime) {
+                        clearInterval(interval);
+                        await fetchFinalResults();
+                        setLoading(false);
+                        addLog(`🎉 Envío completado: ${progress.sent} enviados, ${progress.failed} fallidos`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error monitoreando progreso:', error);
+            }
+        }, 2000); // Verificar cada 2 segundos
+        
+        // Limpiar interval después de 30 minutos máximo
+        setTimeout(() => {
+            clearInterval(interval);
+            setLoading(false);
+        }, 30 * 60 * 1000);
+    };
+
+    // Función para obtener resultados finales
+    const fetchFinalResults = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/messages/sending-results');
+            const data = await response.json();
+            
+            if (data.success && data.results) {
+                setResults(data.results);
+                
+                // Actualizar progreso con resultados finales
+                if (data.results.details) {
+                    const finalProgress = data.results.details.map((result: any, index: number) => ({
+                        contactId: `progress-${index}`,
+                        contactName: result.contact,
+                        phone: result.phone,
+                        status: result.status,
+                        timestamp: result.timestamp,
+                        error: result.error,
+                        duration: 0
+                    }));
+                    setSendingProgress(finalProgress);
+                }
+            }
+        } catch (error) {
+            console.error('Error obteniendo resultados finales:', error);
+        }
+    };
+
+    // Monitor backend status directly
+    useEffect(() => {
+        let isSubscribed = true;
+        
+        const checkBackendStatus = async () => {
+            if (!isSubscribed) return;
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/status');
+                const data = await response.json();
+                
+                if (!isSubscribed) return; // Check again after async operation
+                
+                const currentStatus = data.status || 'disconnected';
+                const currentPhone = data.phoneNumber || '';
+                
+                // Only update if values actually changed
+                setBackendConnectionStatus(prevStatus => {
+                    return prevStatus !== currentStatus ? currentStatus : prevStatus;
+                });
+                
+                setBackendPhoneNumber(prevPhone => {
+                    return prevPhone !== currentPhone ? currentPhone : prevPhone;
+                });
+                
+                // Update whatsapp status only if connection status changed
+                setWhatsappStatus(prev => {
+                    const isNowConnected = data.status === 'connected';
+                    const wasConnected = prev.isConnected;
+                    
+                    // Only log connection change once
+                    if (isNowConnected && !wasConnected) {
+                        setTimeout(() => {
+                            addLog('🎉 ¡WhatsApp CONECTADO automáticamente!');
+                            if (data.phoneNumber) {
+                                addLog(`📱 Conectado como: ${data.phoneNumber}`);
+                            }
+                        }, 0);
+                    }
+                    
+                    // Only update state if something actually changed
+                    if (prev.isConnected !== isNowConnected || 
+                        prev.phoneNumber !== currentPhone) {
+                        return {
+                            ...prev,
+                            isConnected: isNowConnected,
+                            phoneNumber: currentPhone,
+                            lastSeen: isNowConnected ? new Date() : prev.lastSeen
+                        };
+                    }
+                    
+                    return prev; // No changes, return same object to prevent re-render
+                });
+                
+            } catch (error) {
+                if (!isSubscribed) return;
+                
+                setBackendConnectionStatus(prev => prev !== 'disconnected' ? 'disconnected' : prev);
+                setBackendPhoneNumber(prev => prev !== '' ? '' : prev);
+            }
+        };
+
+        // Check immediately and then every 5 seconds (reduced frequency)
+        checkBackendStatus();
+        const interval = setInterval(checkBackendStatus, 5000);
+
+        return () => {
+            isSubscribed = false;
+            clearInterval(interval);
+        };
+    }, []); // Empty dependency array is correct here
+
+    // Effects - WhatsApp status is already monitored via polling in the previous useEffect
 
     const tabs = [
         { id: 'whatsapp', name: 'WhatsApp', icon: '📱', color: 'blue' },
@@ -671,14 +759,23 @@ export default function Home() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-600 text-sm font-medium">Estado WhatsApp</p>
-                                <p className={`text-2xl font-bold ${whatsappStatus?.isConnected ? 'text-green-600' : 'text-red-600'}`}>
-                                    {whatsappStatus?.isConnected ? 'Conectado' : 'Desconectado'}
+                                <p className={`text-2xl font-bold ${backendConnectionStatus === 'connected' ? 'text-green-600' : backendConnectionStatus === 'connecting' || backendConnectionStatus === 'qr_ready' ? 'text-yellow-600' : 'text-red-600'}`}>
+                                    {backendConnectionStatus === 'connected' ? 'Conectado' : 
+                                     backendConnectionStatus === 'connecting' ? 'Conectando...' :
+                                     backendConnectionStatus === 'qr_ready' ? 'QR Listo' : 'Desconectado'}
                                 </p>
+                                {backendConnectionStatus === 'connected' && backendPhoneNumber && (
+                                    <p className="text-xs text-gray-500 mt-1 font-mono">{backendPhoneNumber}</p>
+                                )}
                             </div>
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${whatsappStatus?.isConnected ? 'bg-green-100' : 'bg-red-100'
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                backendConnectionStatus === 'connected' ? 'bg-green-100' : 
+                                backendConnectionStatus === 'connecting' || backendConnectionStatus === 'qr_ready' ? 'bg-yellow-100' : 'bg-red-100'
                                 }`}>
                                 <span className="text-xl">
-                                    {whatsappStatus?.isConnected ? '✅' : '❌'}
+                                    {backendConnectionStatus === 'connected' ? '✅' : 
+                                     backendConnectionStatus === 'connecting' ? '🔄' :
+                                     backendConnectionStatus === 'qr_ready' ? '📱' : '❌'}
                                 </span>
                             </div>
                         </div>
@@ -766,8 +863,7 @@ export default function Home() {
                         <ContactsSection
                             contacts={contacts}
                             loading={loading}
-                            onLoadContacts={loadContacts}
-                            onLoadGroupContacts={loadGroupContacts}
+                            onContactsLoaded={setContacts}
                             onClearContacts={clearContacts}
                             onFilterContacts={handleFilterContacts}
                         />

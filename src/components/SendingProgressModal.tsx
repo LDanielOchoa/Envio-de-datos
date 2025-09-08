@@ -82,14 +82,21 @@ export default function SendingProgressModal({
     const fetchProgress = async () => {
       try {
         console.log(`🔄 [Modal] Consultando progreso para sessionId: ${sessionId}...`);
-        const response = await fetch(`/api/whatsapp/sending-progress?sessionId=${sessionId}`);
+        const response = await fetch(`http://localhost:3001/api/messages/sending-progress?sessionId=${sessionId}`);
         
         if (response.ok) {
           const data = await response.json();
           
           if (data.success) {
-            const processedCount = data.data.results ? data.data.results.filter((r: { status: string }) => r.status !== 'pending').length : 0;
-            const logMessage = `📊 Progreso: ${processedCount}/${data.data.totalContacts} | ✅ ${data.data.successCount} enviados | ❌ ${data.data.errorCount + data.data.invalidNumbersCount} sin WhatsApp`;
+            // Manejar tanto data.data como data.progress para compatibilidad
+            const progressData = data.data || data.progress || {};
+            const results = progressData.results || [];
+            const processedCount = results.filter((r: { status: string }) => r.status !== 'pending').length;
+            const totalContacts = progressData.totalContacts || progressData.total || 0;
+            const successCount = progressData.successCount || progressData.sent || 0;
+            const errorCount = (progressData.errorCount || progressData.failed || 0) + (progressData.invalidNumbersCount || 0);
+            
+            const logMessage = `📊 Progreso: ${processedCount}/${totalContacts} | ✅ ${successCount} enviados | ❌ ${errorCount} sin WhatsApp`;
             console.log(`✅ [Modal] ${logMessage}`);
             
             // Agregar log al estado para mostrar en la UI
@@ -99,14 +106,15 @@ export default function SendingProgressModal({
             });
             
             // Mostrar detalles de los últimos contactos procesados
-            if (data.data.results && data.data.results.length > 0) {
-              const recentResults = data.data.results.filter((r: { status: string }) => r.status !== 'pending').slice(-3);
+            if (results && results.length > 0) {
+              const recentResults = results.filter((r: { status: string }) => r.status !== 'pending').slice(-3);
               if (recentResults.length > 0) {
                 console.log(`📋 [Modal] Últimos contactos procesados:`);
-                recentResults.forEach((result: { status: string; contactName: string; phone: string }) => {
-                  const statusEmoji = result.status === 'success' ? '✅' : '❌';
-                  const statusText = result.status === 'success' ? 'ENVIADO' : 'SIN WHATSAPP';
-                  const contactLog = `${statusEmoji} ${result.contactName} (${result.phone}) - ${statusText}`;
+                recentResults.forEach((result: { status: string; contactName?: string; contact?: string; name?: string; phone: string }) => {
+                  const contactName = result.contactName || result.contact || result.name || 'Sin nombre';
+                  const statusEmoji = (result.status === 'success' || result.status === 'sent') ? '✅' : '❌';
+                  const statusText = (result.status === 'success' || result.status === 'sent') ? 'ENVIADO' : 'SIN WHATSAPP';
+                  const contactLog = `${statusEmoji} ${contactName} (${result.phone}) - ${statusText}`;
                   console.log(`  ${contactLog}`);
                   
                   // Agregar log de contacto individual
@@ -118,7 +126,20 @@ export default function SendingProgressModal({
               }
             }
             
-            setRealTimeProgress(data.data);
+            // Actualizar el estado con la estructura compatible
+            setRealTimeProgress({
+              sessionId: progressData.sessionId || 'bulk-session',
+              totalContacts: totalContacts,
+              currentIndex: progressData.currentIndex || progressData.current?.index || 0,
+              successCount: successCount,
+              errorCount: errorCount,
+              invalidNumbersCount: progressData.invalidNumbersCount || 0,
+              verifiedWhatsappCount: progressData.verifiedWhatsappCount || 0,
+              isComplete: progressData.isComplete || (!progressData.isActive && totalContacts > 0),
+              startTime: progressData.startTime || '',
+              lastUpdate: new Date().toISOString(),
+              results: results
+            });
             setLastUpdate(new Date());
             
             // Resetear contador de reintentos y volver al intervalo base si hay éxito
@@ -298,7 +319,14 @@ export default function SendingProgressModal({
             <div className="space-y-3">
               {contactsToShow.map((item, index) => {
                 // Obtener nombre del contacto desde los datos del servidor
-                const contactName = realTimeProgress?.results?.[index]?.contactName || item.contactName || `Contacto ${index + 1}`;
+                const contactName = realTimeProgress?.results?.[index]?.contactName || 
+                                  item.contactName || 
+                                  (item as any).contact || 
+                                  (item as any).name || 
+                                  `Contacto ${index + 1}`;
+                
+                // Mapear el status correctamente - manejar tanto 'sent' como 'success'
+                const mappedStatus = (item.status === 'success' || (item as any).status === 'sent') ? 'success' : item.status;
                 
                 // Determinar si este contacto se está procesando actualmente
                 const processedCount = contactsToShow.filter(contact => contact.status !== 'pending').length;
@@ -310,9 +338,9 @@ export default function SendingProgressModal({
                     className={`p-4 rounded-xl border-2 transition-all duration-300 ${
                       isCurrentlyProcessing
                         ? 'border-blue-400 bg-blue-50 shadow-lg scale-105'
-                        : item.status === 'success'
+                        : mappedStatus === 'success'
                         ? 'border-green-200 bg-green-50'
-                        : item.status === 'error' || item.status === 'invalid_number' || item.status === 'verifying_whatsapp' || item.status === 'has_whatsapp'
+                        : mappedStatus === 'error' || mappedStatus === 'invalid_number' || mappedStatus === 'verifying_whatsapp' || mappedStatus === 'has_whatsapp'
                         ? 'border-red-200 bg-red-50'
                         : 'border-gray-200 bg-gray-50'
                     }`}
@@ -323,16 +351,16 @@ export default function SendingProgressModal({
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                           isCurrentlyProcessing
                             ? 'bg-blue-500 animate-pulse'
-                            : item.status === 'success'
+                            : mappedStatus === 'success'
                             ? 'bg-green-500'
-                            : (item.status === 'error' || item.status === 'invalid_number' || item.status === 'verifying_whatsapp' || item.status === 'has_whatsapp')
+                            : (mappedStatus === 'error' || mappedStatus === 'invalid_number' || mappedStatus === 'verifying_whatsapp' || mappedStatus === 'has_whatsapp')
                             ? 'bg-red-500'
                             : 'bg-gray-400'
                         }`}>
                           <span className="text-white text-lg">
                             {isCurrentlyProcessing ? '📤' : 
-                             item.status === 'success' ? '✅' : 
-                             (item.status === 'error' || item.status === 'invalid_number' || item.status === 'verifying_whatsapp' || item.status === 'has_whatsapp') ? '❌' : '⏳'}
+                             mappedStatus === 'success' ? '✅' : 
+                             (mappedStatus === 'error' || mappedStatus === 'invalid_number' || mappedStatus === 'verifying_whatsapp' || mappedStatus === 'has_whatsapp') ? '❌' : '⏳'}
                           </span>
                         </div>
 
@@ -357,15 +385,15 @@ export default function SendingProgressModal({
                         <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                           isCurrentlyProcessing
                             ? 'bg-blue-100 text-blue-800'
-                            : item.status === 'success'
+                            : mappedStatus === 'success'
                             ? 'bg-green-100 text-green-800'
-                            : (item.status === 'error' || item.status === 'invalid_number' || item.status === 'verifying_whatsapp' || item.status === 'has_whatsapp')
+                            : (mappedStatus === 'error' || mappedStatus === 'invalid_number' || mappedStatus === 'verifying_whatsapp' || mappedStatus === 'has_whatsapp')
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
                           {isCurrentlyProcessing ? 'Enviando...' :
-                           item.status === 'success' ? 'Enviado' :
-                           (item.status === 'error' || item.status === 'invalid_number' || item.status === 'verifying_whatsapp' || item.status === 'has_whatsapp') ? 'Sin WhatsApp' : 'Pendiente'}
+                           mappedStatus === 'success' ? 'Enviado' :
+                           (mappedStatus === 'error' || mappedStatus === 'invalid_number' || mappedStatus === 'verifying_whatsapp' || mappedStatus === 'has_whatsapp') ? 'Sin WhatsApp' : 'Pendiente'}
                         </div>
                       </div>
                     </div>
@@ -456,7 +484,7 @@ export default function SendingProgressModal({
                       }))
                     };
                     
-                    const response = await fetch('/api/whatsapp/export-results', {
+                    const response = await fetch('http://localhost:3001/api/messages/sending-results', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

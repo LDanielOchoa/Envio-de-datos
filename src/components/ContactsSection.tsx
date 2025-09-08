@@ -7,8 +7,7 @@ import ErrorNotification from './ErrorNotification';
 interface ContactsSectionProps {
   contacts: Contact[];
   loading: boolean;
-  onLoadContacts: (file: File, sheetName?: string) => void;
-  onLoadGroupContacts: (file: File, sheetName?: string) => void;
+  onContactsLoaded: (contacts: Contact[]) => void;
   onClearContacts: () => void;
   onFilterContacts: (filteredContacts: Contact[]) => void;
   onLoadError?: (error: string) => void; // Nueva prop para manejar errores desde el padre
@@ -17,8 +16,7 @@ interface ContactsSectionProps {
 export default function ContactsSection({
   contacts,
   loading,
-  onLoadContacts,
-  onLoadGroupContacts,
+  onContactsLoaded,
   onClearContacts,
   onFilterContacts,
   onLoadError
@@ -56,6 +54,43 @@ export default function ContactsSection({
 
   const hideError = () => {
     setErrorNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  // Función para procesar archivo Excel usando la API
+  const processExcelFile = async (file: File, sheetName: string, sheetType: 'unitario' | 'g29_30') => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sheetType', sheetType);
+      formData.append('selectedSheet', sheetName);
+
+      const response = await fetch('http://localhost:3001/api/excel/process', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Error al procesar el archivo');
+      }
+
+      // Llamar al callback con los contactos procesados
+      if (result.data && result.data.contacts) {
+        onContactsLoaded(result.data.contacts);
+        hideError(); // Ocultar cualquier error anterior
+        setIsProcessingFile(false);
+      } else {
+        throw new Error('No se encontraron contactos válidos en el archivo');
+      }
+
+    } catch (error) {
+      console.error('Error al procesar archivo Excel:', error);
+      const { title, message } = getSpecificErrorMessage(error);
+      showError(title, message, 'error');
+      setIsProcessingFile(false);
+      throw error;
+    }
   };
 
   // Función para obtener mensajes de error específicos
@@ -304,7 +339,7 @@ export default function ContactsSection({
           showError('Cargando contactos...', `Procesando hoja: ${sheets[0]}`, 'info');
           setLoadingType('individual');
           try {
-            onLoadContacts(file, sheets[0]);
+            processExcelFile(file, sheets[0], 'unitario');
             checkDataLoaded(sheets[0], 'individual');
           } catch (loadError) {
             const { title, message } = getSpecificErrorMessage(loadError);
@@ -351,7 +386,7 @@ export default function ContactsSection({
           showError('Cargando contactos por grupos...', `Procesando hoja: ${sheets[0]}`, 'info');
           setLoadingType('groups');
           try {
-            onLoadGroupContacts(file, sheets[0]);
+            processExcelFile(file, sheets[0], 'g29_30');
             checkDataLoaded(sheets[0], 'groups');
           } catch (loadError) {
             const { title, message } = getSpecificErrorMessage(loadError);
@@ -375,7 +410,7 @@ export default function ContactsSection({
     e.target.value = '';
   };
 
-  const handleSheetSelection = (sheetName: string) => {
+  const handleSheetSelection = async (sheetName: string) => {
     if (pendingFile && pendingLoadType) {
       try {
         setLoadingType(pendingLoadType);
@@ -383,11 +418,11 @@ export default function ContactsSection({
         setLastProcessedSheet(sheetName);
         if (pendingLoadType === 'individual') {
           showError('Cargando contactos...', `Procesando hoja seleccionada: ${sheetName}`, 'info');
-          onLoadContacts(pendingFile, sheetName);
+          processExcelFile(pendingFile, sheetName, 'unitario');
           checkDataLoaded(sheetName, 'individual', 2500);
         } else {
           showError('Cargando contactos por grupos...', `Procesando hoja seleccionada: ${sheetName}`, 'info');
-          onLoadGroupContacts(pendingFile, sheetName);
+          processExcelFile(pendingFile, sheetName, 'g29_30');
           checkDataLoaded(sheetName, 'groups', 2500);
         }
       } catch (error) {
