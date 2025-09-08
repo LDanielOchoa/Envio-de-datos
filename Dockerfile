@@ -36,7 +36,11 @@ const essentialDevDeps = { \
   '@types/react': pkg.devDependencies['@types/react'], \
   '@types/react-dom': pkg.devDependencies['@types/react-dom'], \
   '@types/jsdom': pkg.devDependencies['@types/jsdom'], \
-  '@types/node-cron': pkg.devDependencies['@types/node-cron'] \
+  '@types/node-cron': pkg.devDependencies['@types/node-cron'], \
+  '@types/uuid': pkg.devDependencies['@types/uuid'], \
+  '@types/cors': pkg.devDependencies['@types/cors'], \
+  '@types/express-rate-limit': pkg.devDependencies['@types/express-rate-limit'], \
+  '@types/qrcode': pkg.devDependencies['@types/qrcode'] \
 }; \
 pkg.dependencies = essentialDeps; \
 pkg.devDependencies = essentialDevDeps; \
