@@ -14,7 +14,6 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm ci --only=production --no-audit --no-fund
 
-# Copiar el código fuente
 COPY . .
 
 # Crear directorio para las sesiones de WhatsApp
