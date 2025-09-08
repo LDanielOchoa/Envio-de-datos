@@ -45,23 +45,24 @@ RUN apt-get update && apt-get install -y \
 # Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar todo el código fuente primero
+# Copiar solo package.json y package-lock.json primero (para aprovechar cache de Docker)
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+
+# Instalar dependencias del frontend
+RUN npm ci --only=production
+
+# Instalar dependencias del backend
+RUN cd backend && npm ci --only=production
+
+# Copiar el resto del código fuente
 COPY . .
 
-# Establecer NODE_ENV=production para evitar la ejecución del script setup durante la instalación
-ENV NODE_ENV=production
-
-# Instalar TODAS las dependencias, incluyendo devDependencies
-RUN npm install --include=dev
-
-# Construir la aplicación
+# Construir la aplicación frontend
 RUN npm run build
-
-# Limpiar dependencias de desarrollo y reinstalar solo las de producción
-RUN npm ci --only=production
 
 # Exponer el puerto
 EXPOSE 3000
 
 # Comando para ejecutar la aplicación
-CMD ["npm", "start"] 
+CMD ["npm", "start"]

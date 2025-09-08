@@ -9,4 +9,8 @@ npm-debug.log
 .wwebjs_auth
 .wwebjs_cache
 whatsapp-sessions
-logs 
+logs
+backend/node_modules
+backend/auth_info
+.vercel
+.railway
