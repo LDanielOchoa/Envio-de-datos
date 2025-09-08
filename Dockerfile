@@ -41,8 +41,7 @@ const essentialDevDeps = { \
   '@types/uuid': pkg.devDependencies['@types/uuid'], \
   '@types/cors': pkg.devDependencies['@types/cors'], \
   '@types/express-rate-limit': pkg.devDependencies['@types/express-rate-limit'], \
-  '@types/qrcode': pkg.devDependencies['@types/qrcode'], \
-  '@types/whatsapp-web.js': pkg.devDependencies['@types/whatsapp-web.js'] \
+  '@types/qrcode': pkg.devDependencies['@types/qrcode'] \
 }; \
 pkg.dependencies = essentialDeps; \
 pkg.devDependencies = essentialDevDeps; \

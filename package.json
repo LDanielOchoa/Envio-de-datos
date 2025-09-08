@@ -40,7 +40,6 @@
     "@types/cors": "^2.8.17",
     "@types/express-rate-limit": "^6.0.0",
     "@types/qrcode": "^1.5.5",
-    "@types/whatsapp-web.js": "^1.23.1",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.52.0",
     "eslint-config-next": "^14.0.0",
