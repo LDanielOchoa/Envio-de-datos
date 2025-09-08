@@ -82,7 +82,7 @@ export default function SendingProgressModal({
     const fetchProgress = async () => {
       try {
         console.log(`🔄 [Modal] Consultando progreso para sessionId: ${sessionId}...`);
-        const response = await fetch(`http://localhost:3001/api/messages/sending-progress?sessionId=${sessionId}`);
+        const response = await fetch(`https://envio-de-datos-hl8g.onrender.com/api/messages/sending-progress?sessionId=${sessionId}`);
         
         if (response.ok) {
           const data = await response.json();
@@ -484,7 +484,7 @@ export default function SendingProgressModal({
                       }))
                     };
                     
-                    const response = await fetch('http://localhost:3001/api/messages/sending-results', {
+                    const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/sending-results', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

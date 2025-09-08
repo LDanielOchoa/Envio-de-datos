@@ -46,7 +46,7 @@ export default function QRModal({ isOpen, onClose, onGenerateQR }: QRModalProps)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      const response = await fetch(`http://localhost:3001/api/qr?t=${now}`, {
+      const response = await fetch(`https://envio-de-datos-hl8g.onrender.com/api/qr?t=${now}`, {
         cache: 'no-cache',
         signal: controller.signal,
         headers: {
@@ -105,7 +105,7 @@ export default function QRModal({ isOpen, onClose, onGenerateQR }: QRModalProps)
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
           
-          const response = await fetch('http://localhost:3001/api/status', {
+          const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/status', {
             signal: controller.signal
           });
           

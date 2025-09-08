@@ -88,7 +88,7 @@ export default function Home() {
 
         try {
             setIsCheckingStatus(true);
-            const response = await fetch('http://localhost:3001/api/status');
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/status');
 
             const data = await response.json();
             if (data.status) {
@@ -120,7 +120,7 @@ export default function Home() {
             addLog('🔍 Verificando conexión manualmente...');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            const response = await fetch('http://localhost:3001/api/status');
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/status');
             const data = await response.json();
             
             if (data.status) {
@@ -154,7 +154,7 @@ export default function Home() {
             setQrLoading(true);
             addLog('🔄 Reiniciando WhatsApp completamente...');
 
-            const response = await fetch('http://localhost:3001/api/disconnect', {
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/disconnect', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -188,7 +188,7 @@ export default function Home() {
             addLog('🚀 Generando código QR...');
 
             // Call the Baileys backend directly
-            const response = await fetch('http://localhost:3001/api/reconnect', {
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/reconnect', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -253,7 +253,7 @@ export default function Home() {
             }
 
             addLog('📤 [INDIVIDUAL] Enviando archivo al servidor...');
-            const response = await fetch('http://localhost:3001/api/excel/process', {
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/excel/process', {
                 method: 'POST',
                 body: formData,
             });
@@ -300,7 +300,7 @@ export default function Home() {
             }
 
             addLog('📤 [GRUPOS] Enviando archivo al servidor...');
-            const response = await fetch('http://localhost:3001/api/excel/process', {
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/excel/process', {
                 method: 'POST',
                 body: formData,
             });
@@ -411,7 +411,7 @@ export default function Home() {
         addLog(`🧪 Enviando mensaje de prueba a: ${testContact.name} (${testContact.phone})`);
 
         try {
-            const response = await fetch('http://localhost:3001/api/messages/send-test', {
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/send-test', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -473,7 +473,7 @@ export default function Home() {
 
         try {
             // Enviar mensajes usando el backend Express
-            const response = await fetch('http://localhost:3001/api/messages/send-bulk', {
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/send-bulk', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -493,7 +493,7 @@ export default function Home() {
                 // Iniciar polling del progreso
                 const pollProgress = async (): Promise<void> => {
                     try {
-                        const progressResponse = await fetch('http://localhost:3001/api/messages/sending-progress');
+                        const progressResponse = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/sending-progress');
                         const progressData = await progressResponse.json();
                         
                         if (progressData.success && progressData.progress) {
@@ -514,7 +514,7 @@ export default function Home() {
                             
                             // Si el envío terminó, obtener resultados finales
                             if (progressData.isComplete) {
-                                const resultsResponse = await fetch('http://localhost:3001/api/messages/sending-results');
+                                const resultsResponse = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/sending-results');
                                 const resultsData = await resultsResponse.json();
                                 
                                 if (resultsData.success && resultsData.results) {
@@ -562,7 +562,7 @@ export default function Home() {
     const startProgressMonitoring = () => {
         const interval = setInterval(async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/messages/sending-progress');
+                const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/sending-progress');
                 const data = await response.json();
                 
                 if (data.success && data.progress) {
@@ -611,7 +611,7 @@ export default function Home() {
     // Función para obtener resultados finales
     const fetchFinalResults = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/messages/sending-results');
+            const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/messages/sending-results');
             const data = await response.json();
             
             if (data.success && data.results) {
@@ -644,7 +644,7 @@ export default function Home() {
             if (!isSubscribed) return;
             
             try {
-                const response = await fetch('http://localhost:3001/api/status');
+                const response = await fetch('https://envio-de-datos-hl8g.onrender.com/api/status');
                 const data = await response.json();
                 
                 if (!isSubscribed) return; // Check again after async operation
