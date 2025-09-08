@@ -34,7 +34,8 @@ const essentialDevDeps = { \
   'autoprefixer': pkg.devDependencies.autoprefixer, \
   '@types/node': pkg.devDependencies['@types/node'], \
   '@types/react': pkg.devDependencies['@types/react'], \
-  '@types/react-dom': pkg.devDependencies['@types/react-dom'] \
+  '@types/react-dom': pkg.devDependencies['@types/react-dom'], \
+  '@types/jsdom': pkg.devDependencies['@types/jsdom'] \
 }; \
 pkg.dependencies = essentialDeps; \
 pkg.devDependencies = essentialDevDeps; \
