@@ -55,6 +55,9 @@ RUN npm install --no-audit --no-fund
 # Copy source code
 COPY . .
 
+# Ensure public directory exists
+RUN mkdir -p ./public
+
 # Build the application
 RUN npm run build
 
@@ -70,9 +73,11 @@ WORKDIR /app
 
 # Copy built application from builder stage
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+
+# Copy public directory
+COPY --from=builder /app/public ./public
 
 # Copy backend files
 COPY backend ./backend
