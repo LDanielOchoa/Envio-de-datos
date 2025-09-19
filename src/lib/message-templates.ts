@@ -41,7 +41,7 @@ https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:60414&cs=1WfIr6
 
 ⿢ Diligenciamiento y firma del documento: https://drive.google.com/file/d/1Ag05j_lbvlAA441_foQs8JAWupg-emk4/view?usp=sharing 
 Descargue y complete los formatos adjuntos. Una vez diligenciados y firmados, súbalos a través del siguiente enlace 👉 https://forms.gle/ABh86C1TCNW1dpsF9
-o envíelos al correo dbarrerapa@unal.edu.co o (también puede compartirlos por este mismo medio – WhatsApp):
+o envíelos al correo Cyguzman@unal.edu.co o (también puede compartirlos por este mismo medio – WhatsApp):
 
 📅 Inicio del curso: Miércoles 24 de Septiembre
 🗓 Finaliza: Viernes 17 de Octubre 2025
@@ -68,7 +68,7 @@ https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:60414&cs=1WfIr6
 
 ⿢ Diligenciamiento y firma del documento: https://drive.google.com/file/d/1Ag05j_lbvlAA441_foQs8JAWupg-emk4/view 
 Descargue y complete los formatos adjuntos. Una vez diligenciados y firmados, súbalos a través del siguiente enlace 👉 https://forms.gle/ABh86C1TCNW1dpsF9
-o envíelos al correo dbarrerapa@unal.edu.co o (también puede compartirlos por este mismo medio – WhatsApp):
+o envíelos al correo Cyguzman@unal.edu.co o (también puede compartirlos por este mismo medio – WhatsApp):
 
 📅 Inicio del curso: Miércoles 24 de Septiembre
 🗓 Finaliza: Viernes 17 de Octubre 2025
