@@ -29,7 +29,7 @@ El curso es completamente gratuito, no tendrá costo solo para aquellos estudian
     id: 'grupo_34',
     name: 'Mensaje Grupo 34',
     group: '34',
-    content: `Estimado(a) señor(a), participante inscrito en el curso de Gestión de Sostenibilidad en la Empresa.
+    content: `Estimado(a) señor(a) {nombre_apellidos}, participante inscrito en el curso de Gestión de Sostenibilidad en la Empresa.
 
 Reciba un cordial saludo. Mi nombre es David, de la Universidad Nacional de Colombia, y me comunico para agradecerle su inscripción sin costo, beca del 100% de la matrícula, en el curso virtual "Gestión de la Sostenibilidad en las Empresas" que se realiza en el marco del convenio entre la Universidad Nacional y Colombia Productiva del Ministerio de Comercio.
 
@@ -56,7 +56,7 @@ Cyndi G.`
     id: 'grupo_33',
     name: 'Mensaje Grupo 33',
     group: '33',
-    content: `Estimado(a) señor(a), participante inscrito en el curso de Gestión de Sostenibilidad en la Empresa.
+    content: `Estimado(a) señor(a) {nombre_apellidos}, participante inscrito en el curso de Gestión de Sostenibilidad en la Empresa.
 
 Reciba un cordial saludo. Mi nombre es David, de la Universidad Nacional de Colombia, y me comunico para agradecerle su inscripción sin costo, beca del 100% de la matrícula, en el curso virtual "Gestión de la Sostenibilidad en las Empresas" que se realiza en el marco del convenio entre la Universidad Nacional y Colombia Productiva del Ministerio de Comercio.
 
