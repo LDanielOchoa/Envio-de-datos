@@ -45,7 +45,7 @@ o envíelos al correo Cyguzman@unal.edu.co o (también puede compartirlos por es
 
 📅 Inicio del curso: Miércoles 24 de Septiembre
 🗓 Finaliza: Viernes 17 de Octubre 2025
-📌 Horario: Miércoles y Viernes de 7:00 a.m. a 9:00 a.m.
+📌 Horario: Miércoles y Viernes de 5:00 p.m. a 7:00 p.m.
 📍 Grupo 34
 
 Una vez recibida y validada su documentación, le confirmaremos oficialmente su inscripción y le daremos la bienvenida al curso.
