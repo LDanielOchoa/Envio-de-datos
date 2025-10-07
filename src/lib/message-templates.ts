@@ -26,58 +26,62 @@ Los cursos se desarrollarán los martes y jueves de 7:00 am a 9:00 am o de 5:00 
 El curso es completamente gratuito, no tendrá costo solo para aquellos estudiantes que finalicen el curso. En caso de iniciar y no finalizar el curso habrá una penalidad de $300.000. El curso contempla temáticas como: Nociones y pilares de la sostenibilidad en el sector productivo, Agenda de desarrollo sostenible ODS y su conexión con el sector productivo, Tendencias, prácticas y experiencias de sostenibilidad, Crisis climática, Estrategia de economía circular, entre otros.`
   },
   {
-    id: 'grupo_34',
-    name: 'Mensaje Grupo 34',
-    group: '34',
-    content: `Estimado(a) señor(a) {nombre_apellidos}, participante inscrito en el curso de Gestión de Sostenibilidad en la Empresa.
-
-Reciba un cordial saludo. Mi nombre es Cyndi, de la Universidad Nacional de Colombia, y me comunico para agradecerle su inscripción sin costo, beca del 100% de la matrícula, en el curso virtual "Gestión de la Sostenibilidad en las Empresas" que se realiza en el marco del convenio entre la Universidad Nacional y Colombia Productiva del Ministerio de Comercio.
-
-Para formalizar su registro en nuestro sistema y garantizar su cupo, le solicitamos amablemente realizar el siguiente proceso:
-⿡ Registro en la plataforma Hermes
-Por favor, ingrese al siguiente enlace y complete su inscripción en el Grupo 34:
-👉 [LINK DE REGISTRO EN HERMES]
-https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:60414&cs=1WfIr6mZG7VrrYvD1wCFt4neIla4
-
-⿢ Diligenciamiento y firma del documento: https://drive.google.com/file/d/1Ag05j_lbvlAA441_foQs8JAWupg-emk4/view?usp=sharing 
-Descargue y complete los formatos adjuntos. Una vez diligenciados y firmados, súbalos a través del siguiente enlace 👉 https://forms.gle/ABh86C1TCNW1dpsF9
-o envíelos al correo Cyguzman@unal.edu.co o (también puede compartirlos por este mismo medio – WhatsApp):
-
-📅 Inicio del curso: Miércoles 24 de Septiembre
-🗓 Finaliza: Viernes 17 de Octubre 2025
-📌 Horario: Miércoles y Viernes de 5:00 p.m. a 7:00 p.m.
-📍 Grupo 34
-
-Una vez recibida y validada su documentación, le confirmaremos oficialmente su inscripción y le daremos la bienvenida al curso.
-Cordialmente,
-Cyndi G.`
-  },
-  {
-    id: 'grupo_33',
-    name: 'Mensaje Grupo 33',
-    group: '33',
-    content: `Estimado(a) señor(a) {nombre_apellidos}, participante inscrito en el curso de Gestión de Sostenibilidad en la Empresa.
-
-Reciba un cordial saludo. Mi nombre es Cindy, de la Universidad Nacional de Colombia, y me comunico para agradecerle su inscripción sin costo, beca del 100% de la matrícula, en el curso virtual "Gestión de la Sostenibilidad en las Empresas" que se realiza en el marco del convenio entre la Universidad Nacional y Colombia Productiva del Ministerio de Comercio.
+    id: 'grupo_35',
+    name: 'Mensaje Grupo 35',
+    group: '35',
+    content: `Estimada Señor(a) {nombre_apellidos},
+Reciba un cordial saludo. Mi nombre es Cyndi Guzman, de la Universidad Nacional de Colombia, y me comunico para agradecerle su inscripción sin costo, beca del 100% de la matrícula, en el curso virtual “Gestión de la Sostenibilidad en las Empresas” que se realiza en el marco del convenio entre la Universidad Nacional y Colombia Productiva del Ministerio de Comercio.
 
 Para formalizar su registro en nuestro sistema y garantizar su cupo, le solicitamos amablemente realizar el siguiente proceso:
+
 ⿡ Registro en la plataforma Hermes
-Por favor, ingrese al siguiente enlace y complete su inscripción en el Grupo 33:
+Por favor, ingrese al siguiente enlace y complete su inscripción en el Grupo 35:
 👉 [LINK DE REGISTRO EN HERMES]
-https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:60414&cs=1WfIr6mZG7VrrYvD1wCFt4neIla4
+https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:60416&cs=16Er8i2uKPWS10Rd6L1nGqPoZlzs
 
 ⿢ Diligenciamiento y firma del documento: https://drive.google.com/file/d/1Ag05j_lbvlAA441_foQs8JAWupg-emk4/view 
-Descargue y complete los formatos adjuntos. Una vez diligenciados y firmados, súbalos a través del siguiente enlace 👉 https://forms.gle/ABh86C1TCNW1dpsF9
-o envíelos al correo Cyguzman@unal.edu.co o (también puede compartirlos por este mismo medio – WhatsApp):
+Descargue y complete los formatos adjuntos. Una vez diligenciados y firmados, súbalos a través del siguiente enlace 👉 https://forms.gle/LstmaVE5y7ZA5vKD9         o envíe los documentos al correo dbarrerapa@unal.edu.co 
 
-📅 Inicio del curso: Miércoles 24 de Septiembre
-🗓 Finaliza: Viernes 17 de Octubre 2025
-📌 Horario: Miércoles y Viernes de 7:00 a.m. a 9:00 a.m.
-📍 Grupo 33
+📅 Inicio del curso: Martes 14 de Octubre
+🗓 Finaliza: Jueves 06 de Noviembre 2025
+📌 Horario: Martes y Jueves de 7:00 a.m. a 9:00 a.m.
+📍 Grupo 35
+
 
 Una vez recibida y validada su documentación, le confirmaremos oficialmente su inscripción y le daremos la bienvenida al curso.
+
 Cordialmente,
-Cyndi G.`
+Cyndi
+Gestora de Beneficiarios Unal Y Fiducoldex`
+  },
+  {
+    id: 'grupo_36',
+    name: 'Mensaje Grupo 36',
+    group: '36',
+    content: `Estimado(a) señor(a) {nombre_apellidos}, 
+Reciba un cordial saludo. Mi nombre es Cyndi Guzman , de la Universidad Nacional de Colombia, y me comunico para agradecerle su inscripción sin costo, beca del 100% de la matrícula, en el curso virtual “Gestión de la Sostenibilidad en las Empresas” que se realiza en el marco del convenio entre la Universidad Nacional y Colombia Productiva del Ministerio de Comercio.
+
+Para formalizar su registro en nuestro sistema y garantizar su cupo, le solicitamos amablemente realizar el siguiente proceso:
+
+⿡ Registro en la plataforma Hermes
+Por favor, ingrese al siguiente enlace y complete su inscripción en el Grupo 36:
+👉 [LINK DE REGISTRO EN HERMES]
+https://hermesextension.unal.edu.co/ords/f?p=116:21::::RP:P21_ID:60417&cs=1LU8ixtJFR0nyvMICp7VVY33T1LA
+
+⿢ Diligenciamiento y firma del documento: https://drive.google.com/file/d/1Ag05j_lbvlAA441_foQs8JAWupg-emk4/view 
+Descargue y complete los formatos adjuntos. Una vez diligenciados y firmados, súbalos a través del siguiente enlace 👉 https://forms.gle/jCpp7qPSs2gPe9a16 o envíe los documentos al correo dbarrerapa@unal.edu.co 
+
+📅 Inicio del curso: Martes 14 de Octubre
+🗓 Finaliza: Jueves 06 de Noviembre 2025
+📌 Horario: Martes y Jueves de 5:00 p.m. a 7:00 p.m.
+📍 Grupo 36
+
+
+Una vez recibida y validada su documentación, le confirmaremos oficialmente su inscripción y le daremos la bienvenida al curso.
+
+Cordialmente,
+Cyndi Guzman 
+Super Gestora de Beneficiarios Unal Y Fiducoldex`
   }
 ];
 
